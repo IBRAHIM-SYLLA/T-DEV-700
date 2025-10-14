@@ -17,8 +17,8 @@ services:
     volumes:
       - db_data:/var/lib/mysql
       - ./API/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    # networks:
-    #   - timemanager_net
+    networks:
+      - timemanager_net
 
   backend:
     build:
@@ -37,12 +37,13 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
       BACKEND_PORT: ${BACKEND_PORT}
+      CORS_ORIGIN: ${CORS_ORIGIN}
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGIN: http://localhost:3000
     depends_on:
       - db
-    # networks:
-    #   - timemanager_net
+    networks:
+      - timemanager_net
 
   frontend:
     build:
@@ -57,14 +58,14 @@ services:
       - "3000:80"
     depends_on:
       - backend
-    # networks:
-    #   - timemanager_net
+    networks:
+      - timemanager_net
 
 volumes:
   db_data:
 
-# networks:
-#   internal_net:
-#     internal: true # 🧱 non accessible depuis l'extérieur
-#   public_net:
-#     driver: bridge
+networks:
+  internal_net:
+    internal: true # 🧱 non accessible depuis l'extérieur
+  public_net:
+    driver: bridge
