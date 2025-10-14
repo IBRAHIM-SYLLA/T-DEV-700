@@ -1,0 +1,58 @@
+version: "3.9"
+
+services:
+  db:
+    image: mariadb:11
+    container_name: timemanager_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: timemanager_db
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./API/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - timemanager_net
+
+  backend:
+    build:
+      context: ./API
+    container_name: timemanager_backend
+    restart: always
+    ports:
+      - "5001:5001"
+    environment:
+      NODE_ENV: development
+      DB_HOST: db
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: timemanager_db
+      DB_PORT: 3306
+      BACKEND_PORT: 5001
+      CORS_ORIGIN: http://localhost:3000
+    depends_on:
+      - db
+    networks:
+      - timemanager_net
+
+  frontend:
+    build:
+      context: ./Frontend
+    container_name: timemanager_frontend
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - timemanager_net
+
+volumes:
+  db_data:
+
+networks:
+  timemanager_net:
