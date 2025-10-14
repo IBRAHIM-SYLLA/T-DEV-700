@@ -5,11 +5,13 @@ services:
     image: mariadb:11
     container_name: timemanager_db
     restart: always
+    env_file:
+      - .env
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: timemanager_db
-      MYSQL_USER: root
-      MYSQL_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
     ports:
       - "3306:3306"
     volumes:
@@ -25,14 +27,18 @@ services:
     restart: always
     ports:
       - "5001:5001"
+    env_file:
+      - .env
     environment:
-      NODE_ENV: development
+      NODE_ENV: ${NODE_ENV}
       DB_HOST: db
-      DB_USER: root
-      DB_PASSWORD: root
-      DB_NAME: timemanager_db
-      DB_PORT: 3306
-      BACKEND_PORT: 5001
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      BACKEND_PORT: ${BACKEND_PORT}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGIN: http://localhost:3000
     depends_on:
       - db
@@ -44,6 +50,10 @@ services:
       context: ./Frontend
     container_name: timemanager_frontend
     restart: always
+    env_file:
+      - .env
+    environment:
+      - VITE_API_URL=${VITE_API_URL}
     ports:
       - "3000:80"
     depends_on:
@@ -55,4 +65,7 @@ volumes:
   db_data:
 
 networks:
-  timemanager_net:
+  internal_net:
+    internal: true # 🧱 non accessible depuis l'extérieur
+  public_net:
+    driver: bridge
