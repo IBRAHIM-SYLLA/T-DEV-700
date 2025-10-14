@@ -27,7 +27,6 @@ Thumbs.db
 *.swp
 *.swo
 
-
 # Backend (API)
 API/node_modules/
 API/dist/
@@ -44,7 +43,6 @@ API/src/**/*.js.map
 API/.env
 API/.env.local
 API/.env.*.local
-
 
 # Frontend (React app)
 
@@ -68,7 +66,6 @@ Frontend/.env.production.local
 # Generated static assets
 Frontend/public/static/
 Frontend/.parcel-cache/
-
 
 #  Optional lockfiles
 
