@@ -10,4 +10,15 @@ export default defineConfig({
       },
     }),
   ],
+    server: {
+    host: true,      // 👈 rend Vite accessible depuis l’extérieur (Docker)
+    port: 3000,      // 👈 port exposé par le conteneur
+    strictPort: true,
+    watch: {
+      usePolling: true, // 👈 utile pour que les changements soient détectés dans Docker
+    },
+  },
+  preview: {
+    port: 4173,
+  },
 })
