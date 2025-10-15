@@ -17,7 +17,7 @@ configDotenv.config({ path: path.resolve(process.cwd(), ".env") });
 //     await testConnection();
 // });
 
-app.listen(process.env.BACKEND_PORT || 5001, () => {
+app.listen(process.env.BACKEND_PORT || 5001, async () => {
   console.log(`Server running on port ${process.env.BACKEND_PORT || 5001}`);
-  
+  await testConnection();  
 });

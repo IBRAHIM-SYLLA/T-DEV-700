@@ -6,15 +6,15 @@ dotenvConfig({ path: path.resolve(process.cwd(), ".env") });
 
 const pool = mariadb.createPool({
     host: process.env.DB_HOST,
-    port: Number(process.env.DB_PORT) || 3306,
+    port: Number(process.env.DB_PORT) || 3307,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD || "",
     database: process.env.DB_NAME,
     connectionLimit: 5,
-    allowPublicKeyRetrieval: true, // 👈 AJOUTE CETTE LIGNE
+    allowPublicKeyRetrieval: true,
     ssl: false
 });
-
+console.log(process.env.DB_PASSWORD)
 export async function testConnection() {
     let conn;
     try {
