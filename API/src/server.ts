@@ -24,6 +24,7 @@ const PORT = process.env.BACKEND_PORT || 5001;
 app.listen(process.env.BACKEND_PORT || 5001, async () => {
   console.log(`Server running on port ${process.env.BACKEND_PORT || 5001}`);
   await testConnection();
+<<<<<<< HEAD
 });  
 
 app.listen(PORT, () => {
@@ -39,4 +40,6 @@ app.get('/test-db', async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: 'Database connection failed', error: err });
   }
+=======
+>>>>>>> 91feab1 (feat(crud-users): get des users en place)
 });
