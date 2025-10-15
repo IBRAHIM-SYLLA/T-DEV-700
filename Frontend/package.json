@@ -1,3 +1,5 @@
+
+
 {
   "name": "frontend",
   "private": true,
@@ -28,3 +30,4 @@
     "vite": "^7.0.7"
   }
 }
+ 
