@@ -14,18 +14,7 @@ export class UserRepository {
         let conn;
         try {
             conn = await pool.getConnection();
-            const rows = await conn.query(`
-                SELECT 
-                    user_id,
-                    first_name,
-                    last_name,
-                    email,
-                    phone_number,
-                    password,
-                    team_id,
-                    role
-                FROM users;
-            `);
+            const rows = await conn.query(this.userHelper.getReqAllUsers());
 
             // Si ton driver MariaDB retourne une première ligne meta, supprime-la :
             if (Array.isArray(rows) && rows.length > 0 && typeof rows[0] === "object") {
@@ -38,6 +27,121 @@ export class UserRepository {
             throw error;
         } finally {
             if (conn) conn.release();
+        }
+    }
+
+    /**
+     * @name getUserById()
+     * @memberof UserRepository
+     * @param userId 
+     * @description Retourne un user par son id
+     * @returns  Promise<UserModel>
+     */
+    async getUserById(userId: number): Promise<UserModel> {
+        let conn;
+        try {
+            conn = await pool.getConnection();
+            const row = await conn.query(this.userHelper.getReqUserById(userId));
+            // Si ton driver MariaDB retourne une première ligne meta, supprime-la :
+            if (Array.isArray(row) && row.length > 0 && typeof row[0] === "object") {
+                return this.userHelper.userModelBySqlRow(row[0]);
+            }
+            else {
+                return row;
+            }
+        } catch (error) {
+            console.error("Erreur lors de la récupération des utilisateurs :", error);
+            throw error;
+        } finally {
+            if (conn) conn.release();
+        }
+    }
+
+    /**
+     * @name createUser()
+     * @memberof UserRepository
+     * @param user
+     * @description Creer un utilisateur et le renvoie
+     * @returns  Promise<UserModel>
+     */
+    async createUser(user: UserModel): Promise<UserModel> {
+        const params = [
+            user.first_name,
+            user.last_name,
+            user.email,
+            user.phone_number,
+            user.password,
+            user.team_id,
+            user.role,
+        ];
+        let conn;
+        try {
+            conn = await pool.getConnection();
+            const result = await conn.query(this.userHelper.getReqInsertUser(), params);
+            return this.userHelper.userModelBySqlRow(result[0]);
+        } catch (err) {
+            console.error('Erreur insert user:', err);
+            throw err;
+        }
+    }
+
+    /**
+     * @name updateUser()
+     * @memberof UserRepository
+     * @param user
+     * @description Creer un utilisateur et le renvoie
+     * @returns  Promise<UserModel>
+     */
+    async updateUser(user: UserModel, userId: number): Promise<UserModel> {
+        let checkUser: UserModel = await this.getUserById(userId);
+        if (checkUser.user_id > 0) {
+            const params = [
+                user.first_name,
+                user.last_name,
+                user.email,
+                user.phone_number,
+                user.team_id,
+                user.role,
+            ];
+            let conn;
+            try {
+                conn = await pool.getConnection();
+                await conn.query(this.userHelper.getReqUpdateUser(checkUser.user_id), params);
+                user.user_id = checkUser.user_id;
+                return user;
+            } catch (err) {
+                console.error('Erreur insert user:', err);
+                throw err;
+            }
+        }
+        else {
+            console.error('Erreur utilisateur inexistant');
+            return new UserModel();
+        }
+    }
+
+    /**
+     * @name deleteUser()
+     * @memberof UserRepository
+     * @param user
+     * @description Supprimer un utilisateur
+     */
+    async deleteUser(userId: number) {
+        try {
+            const sql = `DELETE FROM users WHERE user_id = ?`;
+            const result = await pool.execute(sql, [userId]);
+
+            const affectedRows = (result as any).affectedRows;
+
+            if (affectedRows === 0) {
+                return null;
+            }
+
+            console.log(` Utilisateur ${userId} supprimé (${affectedRows} ligne)`);
+            return true;
+        } catch (err) {
+            console.error(' Erreur deleteUser :', err);
+            throw err;
         }
     }
 }
