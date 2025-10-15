@@ -1,49 +1,86 @@
-import { useState } from "react";
-import { Container, Form, Button, Card } from "react-bootstrap";
+import React, { useState } from "react";
+import "../style/Login.css";
 
-export default function Login() {
-  const [email, setEmail] = useState("");
+const demoAccounts = [
+  { role: "RH", username: "rh", password: "rh123" },
+  { role: "Manager", username: "manager", password: "manager123" },
+  { role: "Salarié", username: "salarie", password: "salarie123" }
+];
+
+export default function Login({ onLogin }) {
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
+  function handleSubmit(e) {
     e.preventDefault();
-    console.log("Email:", email);
-    console.log("Password:", password);
-    // authentication to be added
-  };
+    const user = demoAccounts.find(
+      (u) => u.username === username && u.password === password
+    );
+    if (user) {
+      setError("");
+      onLogin(user);
+    } else {
+      setError("Identifiants incorrects");
+    }
+  }
 
   return (
-    <Container className="d-flex justify-content-center align-items-center vh-100 bg-light">
-      <Card style={{ width: "22rem" }} className="p-4 shadow-lg">
-        <h3 className="text-center mb-4">Connexion</h3>
-        <Form onSubmit={handleSubmit}>
-          <Form.Group className="mb-3" controlId="formBasicEmail">
-            <Form.Label>Email</Form.Label>
-            <Form.Control
-              type="email"
-              placeholder="Entrez votre email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+    <div className="login-container">
+      <div className="login-card">
+        <div className="login-header">
+          <div className="logo-container">
+            <span className="logo-icon">🕰</span>
+            <h1 className="app-title">TimeTrack Pro</h1>
+          </div>
+          <p className="app-subtitle">Système de pointage entreprise</p>
+        </div>
+        <form className="login-form" onSubmit={handleSubmit}>
+          <div className="input-group">
+            <label className="input-label">Identifiant</label>
+            <input
+              type="text"
+              className="input-field"
+              placeholder="Votre identifiant"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
             />
-          </Form.Group>
-
-          <Form.Group className="mb-3" controlId="formBasicPassword">
-            <Form.Label>Mot de passe</Form.Label>
-            <Form.Control
+          </div>
+          <div className="input-group">
+            <label className="input-label">Mot de passe</label>
+            <input
               type="password"
-              placeholder="Mot de passe"
+              className="input-field"
+              placeholder="Votre mot de passe"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-          </Form.Group>
-
-          <Button variant="primary" type="submit" className="w-100">
+            <button 
+              type="button" 
+              className="forgot-password-btn"
+              onClick={() => alert("Fonctionnalité à venir")}
+            >
+              Mot de passe oublié ?
+            </button>
+          </div>
+          <button type="submit" className="login-button">
             Se connecter
-          </Button>
-        </Form>
-      </Card>
-    </Container>
+          </button>
+        </form>
+        {error && <div className="error-message">{error}</div>}
+        <div className="demo-accounts">
+          <p className="demo-title">Comptes de démonstration :</p>
+          <div className="demo-list">
+            {demoAccounts.map((acc) => (
+              <p key={acc.role} className="demo-item">
+                <strong>{acc.role}:</strong> {acc.username} / {acc.password}
+              </p>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
