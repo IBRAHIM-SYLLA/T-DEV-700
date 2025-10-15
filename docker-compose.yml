@@ -17,6 +17,7 @@ services:
     volumes:
       - db_data:/var/lib/mysql
       - ./API/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
     # networks:
     #   - timemanager_net
 
@@ -59,6 +60,7 @@ services:
       - backend
     # networks:
     #   - timemanager_net
+
 
 volumes:
   db_data:

@@ -1,0 +1,76 @@
+# Global ignores
+
+# Node dependencies
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# TypeScript build info
+*.tsbuildinfo
+
+# OS / Editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+
+# Backend (API)
+API/node_modules/
+API/dist/
+API/build/
+API/tmp/
+API/logs/
+API/uploads/
+
+# Ignore compiled JS in src
+API/src/**/*.js
+API/src/**/*.js.map
+
+# Environment files
+API/.env
+API/.env.local
+API/.env.*.local
+
+
+# Frontend (React app)
+
+Frontend/node_modules/
+Frontend/.cache/
+Frontend/build/
+Frontend/dist/
+Frontend/.next/
+Frontend/.turbo/
+Frontend/.vite/
+Frontend/.eslintcache
+Frontend/coverage/
+
+# Environment files
+Frontend/.env
+Frontend/.env.local
+Frontend/.env.development.local
+Frontend/.env.test.local
+Frontend/.env.production.local
+
+# Generated static assets
+Frontend/public/static/
+Frontend/.parcel-cache/
+
+
+#  Optional lockfiles
+
+# yarn.lock
+# pnpm-lock.yaml
+# package-lock.json
