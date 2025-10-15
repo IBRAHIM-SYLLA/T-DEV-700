@@ -1,8 +1,8 @@
 import mariadb from "mariadb";
-import { config as dotenvConfig } from "dotenv";
-import path from "node:path";
+import dotenv from 'dotenv';
+import path from "path";
 
-dotenvConfig({ path: path.resolve(process.cwd(), ".env") });
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 const pool = mariadb.createPool({
     host: process.env.DB_HOST,
@@ -14,7 +14,9 @@ const pool = mariadb.createPool({
     allowPublicKeyRetrieval: true,
     ssl: false
 });
+
 console.log(process.env.DB_PASSWORD)
+
 export async function testConnection() {
     let conn;
     try {
