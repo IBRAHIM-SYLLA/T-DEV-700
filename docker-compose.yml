@@ -15,8 +15,8 @@ services:
     ports:
       - "${DB_PORT_OUT}:${DB_PORT}"
     volumes:
-      - ./API/src/init.sql:/docker-entrypoint-initdb.d/init.sql
-      - db_data:/var/lib/mysql
+      - ./API/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - mariadb_data:/var/lib/mysql
     networks:
       - timemanager_net
 
@@ -65,4 +65,4 @@ networks:
   timemanager_net:
 
 volumes:
-  db_data:
+  mariadb_data:
