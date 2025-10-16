@@ -20,6 +20,20 @@ services:
     networks:
       - timemanager_net
 
+  phpmyadmin:
+    image: phpmyadmin:latest
+    restart: always
+    ports:
+      - 8080:80
+    environment:
+      PMA_HOST: db
+      PMA_USER: root
+      PMA_PASSWORD: root
+    depends_on:
+      - db
+    networks:
+      - timemanager_net
+
   api:
     build:
       context: ./API
@@ -59,7 +73,6 @@ services:
     command: npm run dev -- --host
     networks:
       - timemanager_net
-
 
 networks:
   timemanager_net:
