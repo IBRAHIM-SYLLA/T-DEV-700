@@ -144,4 +144,37 @@ export class UserRepository {
             throw err;
         }
     }
+    
+    /**
+     * @name findByEmail()
+     * @param email
+     * @description Recherche un utilisateur par email
+     */
+    async findByEmail(email: string): Promise<UserModel | null> {
+        let conn;
+        try {
+            conn = await pool.getConnection();
+            const sql = `SELECT * FROM users WHERE email = ? LIMIT 1`;
+            const rows = await conn.query(sql, [email]);
+            if (Array.isArray(rows) && rows.length > 0 && typeof rows[0] === "object") {
+                return this.userHelper.userModelBySqlRow(rows[0]);
+            }
+            return null;
+        } catch (err) {
+            console.error("Erreur lors de la recherche d'utilisateur par email :", err);
+            throw err;
+        } finally {
+            if (conn) conn.release();
+        }
+    }
+
+    /**
+     * @name checkIfExists()
+     * @param email
+     * @description Vérifie si un utilisateur existe déjà
+     */
+    async checkIfExists(email: string): Promise<boolean> {
+        const user = await this.findByEmail(email);
+        return !!user;
+    }
 }
