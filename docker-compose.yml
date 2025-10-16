@@ -13,7 +13,7 @@ services:
       MARIADB_USER: ${DB_USER}
       MARIADB_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "3307:3306"
+      - "${DB_PORT_OUT}:${DB_PORT}"
     volumes:
       - ./API/src/init.sql:/docker-entrypoint-initdb.d/init.sql
       - db_data:/var/lib/mysql
@@ -49,14 +49,14 @@ services:
     env_file:
       - .env.docker
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
     depends_on:
       - api
     volumes:
       - ./Frontend:/app
       - /app/node_modules
     working_dir: /app
-    command: npm run dev
+    command: npm run dev -- --host
     networks:
       - timemanager_net
 
