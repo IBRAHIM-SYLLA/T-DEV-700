@@ -10,4 +10,15 @@ export default defineConfig({
       },
     }),
   ],
+    server: {
+    host: true,      
+    port: 3000,      
+    strictPort: true,
+    watch: {
+      usePolling: true, 
+    },
+  },
+  preview: {
+    port: 4173,
+  },
 })

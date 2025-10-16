@@ -31,7 +31,7 @@ export default function Login({ onLogin }) {
         <div className="login-header">
           <div className="logo-container">
             <span className="logo-icon">🕰</span>
-            <h1 className="app-title">TimeTrack Pro</h1>
+            <h1 className="app-title">Time Manager</h1>
           </div>
           <p className="app-subtitle">Système de pointage entreprise</p>
         </div>

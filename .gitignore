@@ -14,6 +14,8 @@ pnpm-debug.log*
 .env
 .env.local
 .env.*.local
+.env.docker
+
 
 # TypeScript build info
 *.tsbuildinfo
@@ -25,7 +27,6 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
-
 
 # Backend (API)
 API/node_modules/
@@ -43,7 +44,6 @@ API/src/**/*.js.map
 API/.env
 API/.env.local
 API/.env.*.local
-
 
 # Frontend (React app)
 
