@@ -19,6 +19,21 @@ services:
       - mariadb_data:/var/lib/mysql
     networks:
       - timemanager_net
+  phpmyadmin:
+    image: phpmyadmin:latest
+    restart: always
+    ports:
+      - "${PMA_PORT_OUT}:${PMA_PORT}"
+    env_file:
+      - .env.docker
+    environment:
+      PMA_HOST: ${DB_NAME}
+      PMA_USER: ${DB_USER}
+      PMA_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      - db
+    networks:
+      - timemanager_net
 
   api:
     build:
