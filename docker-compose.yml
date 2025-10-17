@@ -1,56 +1,54 @@
 version: "3.9"
 
 services:
-  db:
+  mariadb:
     image: mariadb:11
-    container_name: timemanager_db
+    container_name: timemanager_mariadb
     restart: always
-    env_file:
-      - .env.docker
+    env_file: ".env.docker"
     environment:
-      MARIADB_ROOT_PASSWORD: ${DB_PASSWORD}
-      MARIADB_DATABASE: ${DB_NAME}
-      MARIADB_USER: ${DB_USER}
-      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
     ports:
-      - "${DB_PORT_OUT}:${DB_PORT}"
+      - "${DB_PORT_OUT}:3306"
     volumes:
       - ./API/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
       - mariadb_data:/var/lib/mysql
+      - ./logs/db:/log/mysql
     networks:
       - timemanager_net
   phpmyadmin:
+    container_name: timemanager_phpmyadmin
     image: phpmyadmin:latest
     restart: always
     ports:
       - "${PMA_PORT_OUT}:${PMA_PORT}"
-    env_file:
-      - .env.docker
+    env_file: ".env.docker"
     environment:
-      PMA_HOST: ${DB_NAME}
+      PMA_HOST: mariadb
+      PMA_PORT: 3306
       PMA_USER: ${DB_USER}
       PMA_PASSWORD: ${DB_PASSWORD}
     depends_on:
-      - db
+      - mariadb
     networks:
       - timemanager_net
 
-  api:
+  backend:
     build:
       context: ./API
       dockerfile: Dockerfile
-    container_name: timemanager_api
-    env_file:
-      - .env.docker
+    container_name: timemanager_backend
+    env_file: ".env.docker"
     restart: always
     ports:
       - "${BACKEND_PORT}:${BACKEND_PORT}"
     depends_on:
-      - db
+      - mariadb
     command: npm run dev
     volumes:
-      - ./API:/app
-      - /app/node_modules
+      - ./API:/usr/src/app
+      - ./logs/api:/logs
     working_dir: /app
     networks:
       - timemanager_net
@@ -61,20 +59,19 @@ services:
       dockerfile: Dockerfile
     container_name: timemanager_frontend
     restart: always
-    env_file:
-      - .env.docker
+    env_file: ".env.docker"
     ports:
       - "${FRONTEND_PORT}:${FRONTEND_PORT}"
     depends_on:
-      - api
+      - backend
     volumes:
-      - ./Frontend:/app
-      - /app/node_modules
+        - ./Frontend:/usr/src/app
+        - ./logs/frontend:/logs
+
     working_dir: /app
     command: npm run dev -- --host
     networks:
       - timemanager_net
-
 
 networks:
   timemanager_net:
