@@ -52,57 +52,75 @@ export default function MonResume({ timeData }) {
     }
   ]);
 
-  // Load data from localStorage and update today's data
-  useEffect(() => {
-    // Load today's data from localStorage
-    const today = new Date().toDateString();
-    const savedTodayData = localStorage.getItem(`timeTrack_${today}`);
+  // Fonction pour mettre à jour les données de la semaine
+  const updateWeekDays = () => {
+    const today = new Date();
+    const todayString = today.toDateString();
+    const dayOfWeek = today.getDay(); // 0 = Dimanche, 1 = Lundi, etc.
+    const dayNames = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
     
-    let todayTimeData = timeData;
-    if (savedTodayData) {
-      const saved = JSON.parse(savedTodayData);
-      todayTimeData = {
-        clockInTime: saved.clockInTime ? new Date(saved.clockInTime) : null,
-        clockOutTime: saved.clockOutTime ? new Date(saved.clockOutTime) : null,
-        dailyHours: saved.dailyHours || 0,
-        status: saved.status || "Absent"
-      };
-    }
-
-    if (todayTimeData && todayTimeData.clockInTime) {
-      const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
-      const dayNames = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
-      const todayName = dayNames[today];
+    // Récupérer les données sauvegardées pour aujourd'hui
+    const savedData = localStorage.getItem(`timeTrack_${todayString}`);
+    
+    // Debug: Afficher les données récupérées
+    console.log("MonResume - Données localStorage:", savedData);
+    
+    if (savedData) {
+      const parsedData = JSON.parse(savedData);
+      const todayName = dayNames[dayOfWeek];
+      
+      console.log("MonResume - Jour actuel:", todayName);
+      console.log("MonResume - Sessions:", parsedData.sessions);
+      console.log("MonResume - Status:", parsedData.status);
+      console.log("MonResume - isWorking:", parsedData.isWorking);
       
       setWeekDays(prevDays => {
-        const updatedDays = prevDays.map(dayData => {
-          if (dayData.day === todayName) {
-            const clockIn = todayTimeData.clockInTime.toLocaleTimeString('fr-FR', { 
-              hour: '2-digit', 
-              minute: '2-digit' 
-            });
-            const clockOut = todayTimeData.clockOutTime ? 
-              todayTimeData.clockOutTime.toLocaleTimeString('fr-FR', { 
+        const updatedDays = prevDays.map(day => {
+          if (day.day === todayName) {
+            // Récupérer les heures d'arrivée et départ depuis les sessions
+            const sessions = parsedData.sessions || [];
+            let clockIn = "--:--";
+            let clockOut = "--:--";
+            
+            if (sessions.length > 0) {
+              // Première session pour l'heure d'arrivée
+              const firstSession = sessions[0];
+              // clockIn est déjà formaté comme "14:30", pas besoin de conversion
+              clockIn = firstSession.clockIn || "--:--";
+              
+              // Dernière session pour l'heure de départ  
+              const lastSession = sessions[sessions.length - 1];
+              if (lastSession.clockOut) {
+                // clockOut est déjà formaté comme "17:30"
+                clockOut = lastSession.clockOut;
+              } else if (parsedData.isWorking === false) {
+                clockOut = "--:--"; // Pas encore pointé le départ
+              }
+            } else if (parsedData.currentSessionStart) {
+              // Session en cours sans session complète
+              clockIn = new Date(parsedData.currentSessionStart).toLocaleTimeString('fr-FR', { 
                 hour: '2-digit', 
                 minute: '2-digit' 
-              }) : null;
+              });
+            }
             
-            const standardHours = 8;
-            const overtime = Math.max(0, todayTimeData.dailyHours - standardHours);
+            const worked = parsedData.totalHours || 0;
+            const overtime = Math.max(0, worked - 8);
+            const present = parsedData.status === "Présent" || parsedData.isWorking || sessions.length > 0;
             
             return {
-              ...dayData,
+              ...day,
               clockIn,
-              clockOut: clockOut || '--:--',
-              worked: todayTimeData.dailyHours,
+              clockOut,
+              worked,
               overtime,
-              present: todayTimeData.status === "Présent" || todayTimeData.clockOutTime !== null
+              present
             };
           }
-          return dayData;
+          return day;
         });
         
-        // Recalculate weekly totals
+        // Calculer les totaux
         const totalWorked = updatedDays.reduce((sum, day) => sum + (day.present ? day.worked : 0), 0);
         const totalOvertime = updatedDays.reduce((sum, day) => sum + day.overtime, 0);
         const daysPresent = updatedDays.filter(day => day.present).length;
@@ -117,59 +135,18 @@ export default function MonResume({ timeData }) {
         return updatedDays;
       });
     }
+  };
+
+  // Mise à jour initiale
+  useEffect(() => {
+    updateWeekDays();
   }, [timeData]);
 
-  // Also check localStorage periodically for updates
+  // Vérification périodique des mises à jour dans localStorage
   useEffect(() => {
     const interval = setInterval(() => {
-      const today = new Date().toDateString();
-      const savedTodayData = localStorage.getItem(`timeTrack_${today}`);
-      
-      if (savedTodayData) {
-        const saved = JSON.parse(savedTodayData);
-        const todayTimeData = {
-          clockInTime: saved.clockInTime ? new Date(saved.clockInTime) : null,
-          clockOutTime: saved.clockOutTime ? new Date(saved.clockOutTime) : null,
-          dailyHours: saved.dailyHours || 0,
-          status: saved.status || "Absent"
-        };
-
-        if (todayTimeData.clockInTime) {
-          const today = new Date().getDay();
-          const dayNames = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
-          const todayName = dayNames[today];
-
-          setWeekDays(prevDays => {
-            return prevDays.map(dayData => {
-              if (dayData.day === todayName) {
-                const clockIn = todayTimeData.clockInTime.toLocaleTimeString('fr-FR', { 
-                  hour: '2-digit', 
-                  minute: '2-digit' 
-                });
-                const clockOut = todayTimeData.clockOutTime ? 
-                  todayTimeData.clockOutTime.toLocaleTimeString('fr-FR', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  }) : '--:--';
-                
-                const standardHours = 8;
-                const overtime = Math.max(0, todayTimeData.dailyHours - standardHours);
-                
-                return {
-                  ...dayData,
-                  clockIn,
-                  clockOut,
-                  worked: todayTimeData.dailyHours,
-                  overtime,
-                  present: todayTimeData.status === "Présent" || todayTimeData.clockOutTime !== null
-                };
-              }
-              return dayData;
-            });
-          });
-        }
-      }
-    }, 1000); // Check every second
+      updateWeekDays();
+    }, 1000); // Vérifier chaque seconde pour une réactivité maximale
 
     return () => clearInterval(interval);
   }, []);

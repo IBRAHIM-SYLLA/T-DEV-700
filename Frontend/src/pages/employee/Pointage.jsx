@@ -42,6 +42,21 @@ export default function Pointage({ onTimeUpdate }) {
         
         setDailyHours(totalDailyHours);
         
+        // Update localStorage in real-time during work
+        const today = new Date().toDateString();
+        const timeData = {
+          status: status,
+          isWorking: true,
+          currentSessionStart: currentSessionStart.toISOString(),
+          sessions: todaySessions,
+          totalHours: totalDailyHours,
+          date: today
+        };
+        localStorage.setItem(`timeTrack_${today}`, JSON.stringify(timeData));
+        
+        // Debug: Afficher les données sauvegardées
+        console.log("Pointage - Données sauvegardées:", timeData);
+        
         // Notify parent component of time update
         if (onTimeUpdate) {
           onTimeUpdate({
