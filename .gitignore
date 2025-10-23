@@ -72,6 +72,11 @@ Frontend/.env.production.local
 Frontend/public/static/
 Frontend/.parcel-cache/
 
+# tests & coverage
+coverage/
+API/coverage/
+Frontend/coverage/
+
 
 #  Optional lockfiles
 
