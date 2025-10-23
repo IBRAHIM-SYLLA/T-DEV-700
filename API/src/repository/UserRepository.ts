@@ -1,4 +1,4 @@
-import pool from "../config/database";
+import { pool } from '../config/database';
 import { UserHelper } from "../helpers/UserHelper";
 import { UserModel } from "../models/user.model";
 

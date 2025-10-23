@@ -4,7 +4,7 @@ import path from "path";
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
-const pool = mariadb.createPool({
+export const pool = mariadb.createPool({
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT) || 3307,
     user: process.env.DB_USER,
