@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import "../../style/MonResume.css";
+import styles from "../../style/style.ts";
 
 export default function MonResume({ timeData }) {
   const [weeklyData, setWeeklyData] = useState({
@@ -182,68 +182,71 @@ export default function MonResume({ timeData }) {
   };
 
   return (
-    <div className="resume-container">
-      <div className="resume-content">
-        <h2>Mon résumé hebdomadaire</h2>
+    <div style={styles.resume.container}>
+      <h2 style={styles.resume.title}>Mon résumé hebdomadaire</h2>
+      
+      <div style={styles.resume.cards}>
+        <div style={styles.resume.card}>
+          <div style={styles.resume.cardIcon}>⏰</div>
+          <div style={styles.resume.cardContent}>
+            <div style={styles.resume.cardLabel}>Heures travaillées</div>
+            <div style={styles.resume.cardValue}>{formatDuration(weeklyData.totalHours)}</div>
+          </div>
+        </div>
         
-        <div className="resume-cards">
-          <div className="resume-card">
-            <div className="card-icon">⏰</div>
-            <div className="card-content">
-              <div className="card-label">Heures travaillées</div>
-              <div className="card-value">{formatDuration(weeklyData.totalHours)}</div>
-            </div>
-          </div>
-          
-          <div className="resume-card">
-            <div className="card-icon">💰</div>
-            <div className="card-content">
-              <div className="card-label">Heures supplémentaires</div>
-              <div className="card-value overtime">{formatDuration(weeklyData.overtimeHours)}</div>
-            </div>
-          </div>
-          
-          <div className="resume-card">
-            <div className="card-icon">📅</div>
-            <div className="card-content">
-              <div className="card-label">Jours présents</div>
-              <div className="card-value">{weeklyData.daysWorked}/{weeklyData.totalDays}</div>
+        <div style={styles.resume.card}>
+          <div style={styles.resume.cardIcon}>💰</div>
+          <div style={styles.resume.cardContent}>
+            <div style={styles.resume.cardLabel}>Heures supplémentaires</div>
+            <div style={styles.mergeStyles(styles.resume.cardValue, styles.resume.cardValueOvertime)}>
+              {formatDuration(weeklyData.overtimeHours)}
             </div>
           </div>
         </div>
+        
+        <div style={styles.resume.card}>
+          <div style={styles.resume.cardIcon}>📅</div>
+          <div style={styles.resume.cardContent}>
+            <div style={styles.resume.cardLabel}>Jours présents</div>
+            <div style={styles.resume.cardValue}>{weeklyData.daysWorked}/{weeklyData.totalDays}</div>
+          </div>
+        </div>
+      </div>
 
-        <div className="week-detail">
-          <h3>Détail de la semaine</h3>
-          
-          <div className="week-days">
-            {weekDays.map((dayData, index) => (
-              <div key={index} className="day-row">
-                <div className="day-info">
-                  <div className={`day-indicator ${dayData.present ? 'active' : ''}`}></div>
-                  <span className="day-name">{dayData.day}</span>
-                </div>
-                <div className="day-times">
-                  <span className="time-range">
-                    {dayData.present ? `${dayData.clockIn} - ${dayData.clockOut || '--:--'}` : 'Absent'}
-                  </span>
-                  <span className="hours-worked">
-                    {dayData.present ? formatDuration(dayData.worked) : '--:--'}
-                  </span>
-                  <span className="overtime">
-                    {dayData.overtime > 0 ? `+${formatDuration(dayData.overtime)}` : ''}
-                  </span>
-                </div>
+      <div style={styles.resume.weekDetail}>
+        <h3 style={styles.resume.weekTitle}>Détail de la semaine</h3>
+        
+        <div style={styles.resume.weekDays}>
+          {weekDays.map((dayData, index) => (
+            <div key={index} style={styles.resume.dayRow}>
+              <div style={styles.resume.dayInfo}>
+                <div style={styles.mergeStyles(
+                  styles.resume.dayIndicator,
+                  dayData.present ? styles.resume.dayIndicatorActive : {}
+                )}></div>
+                <span style={styles.resume.dayName}>{dayData.day}</span>
               </div>
-            ))}
-          </div>
-          
-          <div className="overtime-summary">
-            <div className="overtime-text">
-              <span className="overtime-label">Total heures supplémentaires</span>
-              <span className="overtime-note">Rémunération majorée à 125%</span>
+              <div style={styles.resume.dayTimes}>
+                <span style={styles.resume.timeRange}>
+                  {dayData.present ? `${dayData.clockIn} - ${dayData.clockOut || '--:--'}` : 'Absent'}
+                </span>
+                <span style={styles.resume.hoursWorked}>
+                  {dayData.present ? formatDuration(dayData.worked) : '--:--'}
+                </span>
+                <span style={styles.resume.overtime}>
+                  {dayData.overtime > 0 ? `+${formatDuration(dayData.overtime)}` : ''}
+                </span>
+              </div>
             </div>
-            <div className="overtime-total">{formatDuration(weeklyData.overtimeHours)}</div>
+          ))}
+        </div>
+        
+        <div style={styles.resume.overtimeSummary}>
+          <div style={styles.resume.overtimeText}>
+            <span style={styles.resume.overtimeLabel}>Total heures supplémentaires</span>
+            <span style={styles.resume.overtimeNote}>Rémunération majorée à 125%</span>
           </div>
+          <div style={styles.resume.overtimeTotal}>{formatDuration(weeklyData.overtimeHours)}</div>
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "../style/Login.css";
+import styles from "../style/style.ts";
 
 const demoAccounts = [
   { role: "RH", username: "rh", password: "rh123" },
@@ -26,32 +26,32 @@ export default function Login({ onLogin }) {
   }
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <div className="login-header">
-          <div className="logo-container">
-            <span className="logo-icon">🕰</span>
-            <h1 className="app-title">Time Manager</h1>
+    <div style={styles.login.container}>
+      <div style={styles.login.card}>
+        <div style={styles.login.header}>
+          <div style={styles.login.logoContainer}>
+            <span style={styles.login.logoIcon}>🕰</span>
+            <h1 style={styles.login.appTitle}>Time Manager</h1>
           </div>
-          <p className="app-subtitle">Système de pointage entreprise</p>
+          <p style={styles.login.appSubtitle}>Système de pointage entreprise</p>
         </div>
-        <form className="login-form" onSubmit={handleSubmit}>
-          <div className="input-group">
-            <label className="input-label">Identifiant</label>
+        <form style={styles.login.form} onSubmit={handleSubmit}>
+          <div style={styles.login.formGroup}>
+            <label style={styles.login.inputLabel}>Identifiant</label>
             <input
               type="text"
-              className="input-field"
+              style={styles.login.inputField}
               placeholder="Votre identifiant"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
             />
           </div>
-          <div className="input-group">
-            <label className="input-label">Mot de passe</label>
+          <div style={styles.login.formGroup}>
+            <label style={styles.login.inputLabel}>Mot de passe</label>
             <input
               type="password"
-              className="input-field"
+              style={styles.login.inputField}
               placeholder="Votre mot de passe"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -59,22 +59,22 @@ export default function Login({ onLogin }) {
             />
             <button 
               type="button" 
-              className="forgot-password-btn"
+              style={styles.login.forgotPasswordBtn}
               onClick={() => alert("Fonctionnalité à venir")}
             >
               Mot de passe oublié ?
             </button>
           </div>
-          <button type="submit" className="login-button">
+          <button type="submit" style={styles.login.loginButton}>
             Se connecter
           </button>
         </form>
-        {error && <div className="error-message">{error}</div>}
-        <div className="demo-accounts">
-          <p className="demo-title">Comptes de démonstration :</p>
-          <div className="demo-list">
+        {error && <div style={styles.login.errorMessage}>{error}</div>}
+        <div style={styles.login.demoAccounts}>
+          <p style={styles.login.demoTitle}>Comptes de démonstration :</p>
+          <div style={styles.login.demoList}>
             {demoAccounts.map((acc) => (
-              <p key={acc.role} className="demo-item">
+              <p key={acc.role} style={styles.login.demoItem}>
                 <strong>{acc.role}:</strong> {acc.username} / {acc.password}
               </p>
             ))}

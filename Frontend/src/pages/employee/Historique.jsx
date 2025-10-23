@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import "../../style/Historique.css";
+import styles from "../../style/style.ts";
 
 export default function Historique({ timeData }) {
   const [selectedMonth, setSelectedMonth] = useState("Ce mois");
@@ -89,12 +89,12 @@ export default function Historique({ timeData }) {
   };
 
   return (
-    <div className="history-container">
-      <div className="history-content">
-        <div className="history-header">
-          <h2>Mon historique</h2>
+    <div style={styles.history.container}>
+      <div style={styles.history.content}>
+        <div style={styles.history.header}>
+          <h2 style={styles.history.title}>Mon historique</h2>
           <select 
-            className="month-selector"
+            style={styles.history.monthSelector}
             value={selectedMonth}
             onChange={handleMonthChange}
           >
@@ -104,30 +104,35 @@ export default function Historique({ timeData }) {
           </select>
         </div>
         
-        <div className="history-table-container">
-          <table className="history-table">
+        <div style={styles.history.tableContainer}>
+          <table style={styles.history.table}>
             <thead>
               <tr>
-                <th>DATE</th>
-                <th>ARRIVÉE</th>
-                <th>DÉPART</th>
-                <th>DURÉE</th>
-                <th>H. SUP.</th>
-                <th>STATUT</th>
+                <th style={styles.history.th}>DATE</th>
+                <th style={styles.history.th}>ARRIVÉE</th>
+                <th style={styles.history.th}>DÉPART</th>
+                <th style={styles.history.th}>DURÉE</th>
+                <th style={styles.history.th}>H. SUP.</th>
+                <th style={styles.history.th}>STATUT</th>
               </tr>
             </thead>
             <tbody>
               {historyRecords.map((record, index) => (
                 <tr key={index}>
-                  <td>{record.date}</td>
-                  <td>{record.clockIn}</td>
-                  <td>{record.clockOut}</td>
-                  <td>{formatDuration(record.duration)}</td>
-                  <td className="overtime-cell">
+                  <td style={styles.history.td}>{record.date}</td>
+                  <td style={styles.history.td}>{record.clockIn}</td>
+                  <td style={styles.history.td}>{record.clockOut}</td>
+                  <td style={styles.history.td}>{formatDuration(record.duration)}</td>
+                  <td style={styles.mergeStyles(styles.history.td, styles.history.overtimeCell)}>
                     {record.overtime > 0 ? formatDuration(record.overtime) : '-'}
                   </td>
-                  <td>
-                    <span className={`status-badge ${record.status.toLowerCase()}`}>
+                  <td style={styles.history.td}>
+                    <span style={styles.mergeStyles(
+                      styles.history.statusBadge,
+                      record.status.toLowerCase() === 'complet' ? styles.history.statusBadgeComplete :
+                      record.status.toLowerCase() === 'retard' ? styles.history.statusBadgeDelay :
+                      styles.history.statusBadgeIncomplete
+                    )}>
                       {record.status}
                     </span>
                   </td>
@@ -137,24 +142,28 @@ export default function Historique({ timeData }) {
           </table>
         </div>
         
-        <div className="monthly-summary">
-          <h3>Résumé mensuel</h3>
-          <div className="summary-cards">
-            <div className="summary-card">
-              <div className="summary-number">{monthlyStats.daysWorked}</div>
-              <div className="summary-label">Jours travaillés</div>
+        <div style={styles.history.monthlySummary}>
+          <h3 style={styles.history.summaryTitle}>Résumé mensuel</h3>
+          <div style={styles.history.summaryCards}>
+            <div style={styles.history.summaryCard}>
+              <div style={styles.history.summaryNumber}>{monthlyStats.daysWorked}</div>
+              <div style={styles.history.summaryLabel}>Jours travaillés</div>
             </div>
-            <div className="summary-card">
-              <div className="summary-number">{monthlyStats.totalHours}h</div>
-              <div className="summary-label">Heures totales</div>
+            <div style={styles.history.summaryCard}>
+              <div style={styles.history.summaryNumber}>{monthlyStats.totalHours}h</div>
+              <div style={styles.history.summaryLabel}>Heures totales</div>
             </div>
-            <div className="summary-card">
-              <div className="summary-number overtime">{monthlyStats.overtimeHours}h</div>
-              <div className="summary-label">Heures sup.</div>
+            <div style={styles.history.summaryCard}>
+              <div style={styles.mergeStyles(styles.history.summaryNumber, styles.history.summaryNumberOvertime)}>
+                {monthlyStats.overtimeHours}h
+              </div>
+              <div style={styles.history.summaryLabel}>Heures sup.</div>
             </div>
-            <div className="summary-card">
-              <div className="summary-number delay">{monthlyStats.delays}</div>
-              <div className="summary-label">Retards</div>
+            <div style={styles.history.summaryCard}>
+              <div style={styles.mergeStyles(styles.history.summaryNumber, styles.history.summaryNumberDelay)}>
+                {monthlyStats.delays}
+              </div>
+              <div style={styles.history.summaryLabel}>Retards</div>
             </div>
           </div>
         </div>
