@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "../style/EmployeeDashboard.css";
+import styles from "../style/style.ts";
 import Pointage from "./employee/Pointage";
 import MonResume from "./employee/MonResume";
 import Historique from "./employee/Historique";
@@ -30,32 +30,35 @@ export default function EmployeeDashboard({ user, onLogout }) {
   };
 
   return (
-    <div className="employee-dashboard">
+    <div style={styles.dashboard.container}>
       {/* Header */}
-      <header className="dashboard-header">
-        <div className="header-left">
-          <div className="logo-section">
-            <span className="logo-icon">⏰</span>
-            <span className="app-name">TimeTrack Pro</span>
+      <header style={styles.dashboard.header}>
+        <div style={styles.dashboard.headerLeft}>
+          <div style={styles.dashboard.logoSection}>
+            <span style={styles.dashboard.logoIcon}>⏰</span>
+            <span style={styles.dashboard.appName}>TimeTrack Pro</span>
           </div>
-          <span className="user-role">Salarié</span>
+          <span style={styles.dashboard.userRole}>Salarié</span>
         </div>
-        <div className="header-right">
-          <span className="user-info">
+        <div style={styles.dashboard.headerRight}>
+          <span style={styles.dashboard.userInfo}>
             Connecté en tant que <strong>{user.username}</strong>
           </span>
-          <button className="logout-btn" onClick={onLogout}>
+          <button style={styles.dashboard.logoutBtn} onClick={onLogout}>
             Déconnexion
           </button>
         </div>
       </header>
 
       {/* Navigation Tabs */}
-      <nav className="dashboard-nav">
+      <nav style={styles.dashboard.nav}>
         {["Pointage", "Mon résumé", "Historique"].map((tab) => (
           <button
             key={tab}
-            className={`nav-tab ${activeTab === tab ? "active" : ""}`}
+            style={activeTab === tab ? 
+              styles.mergeStyles(styles.dashboard.navTab, styles.dashboard.navTabActive) : 
+              styles.dashboard.navTab
+            }
             onClick={() => setActiveTab(tab)}
           >
             {tab === "Pointage" && "⏰"} 
@@ -67,8 +70,8 @@ export default function EmployeeDashboard({ user, onLogout }) {
       </nav>
 
       {/* Main Content */}
-      <main className="dashboard-main">
-        <div className="content-container">
+      <main style={styles.dashboard.main}>
+        <div style={styles.dashboard.contentContainer}>
           {renderTabContent()}
         </div>
       </main>

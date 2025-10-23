@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import "../../style/Pointage.css";
+import styles from "../../style/style.ts";
 
 export default function Pointage({ onTimeUpdate }) {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -211,56 +211,42 @@ export default function Pointage({ onTimeUpdate }) {
   };
 
   return (
-    <div className="pointage-container">
-      <div className="pointage-content">
-        <div className="time-display">
-          <div className="current-time">{formatTime(currentTime)}</div>
-          <div className="current-date">{formatDate(currentTime)}</div>
+    <div style={styles.pointage.container}>
+      <div style={styles.pointage.content}>
+        <div style={styles.pointage.timeDisplay}>
+          <div style={styles.pointage.currentTime}>{formatTime(currentTime)}</div>
+          <div style={styles.pointage.currentDate}>{formatDate(currentTime)}</div>
         </div>
         
-        <div className="status-display">
-          <div className="status-label">Statut actuel</div>
-          <div className={`status-value ${status.toLowerCase()}`}>
+        <div style={styles.pointage.statusDisplay}>
+          <div style={styles.pointage.statusLabel}>Statut actuel</div>
+          <div style={styles.mergeStyles(
+            styles.pointage.statusValue,
+            status === "Absent" ? styles.pointage.statusAbsent : styles.pointage.statusPresent
+          )}>
             {status === "Absent" ? "❌ Absent" : "✅ Présent"}
           </div>
         </div>
 
         {/* Daily Hours Display */}
         {(todaySessions.length > 0 || isWorking) && (
-          <div className="daily-hours-display">
-            <div className="hours-label">Temps travaillé aujourd'hui</div>
-            <div className="hours-value">{formatDuration(dailyHours)}</div>
+          <div style={styles.pointage.dailyHoursDisplay}>
+            <div style={styles.pointage.hoursLabel}>Temps travaillé aujourd'hui</div>
+            <div style={styles.pointage.hoursValue}>{formatDuration(dailyHours)}</div>
             
-            {/* Sessions Summary */}
-            <div className="sessions-summary">
-              <div className="sessions-header">
-                Sessions de travail ({todaySessions.length + (isWorking ? 1 : 0)})
-              </div>
-              
-              {/* Completed Sessions */}
-              {todaySessions.map((session, index) => (
-                <div key={index} className="session-item completed">
-                  <span className="session-number">#{session.sessionNumber}</span>
-                  <span className="session-time">{session.clockIn} - {session.clockOut}</span>
-                  <span className="session-duration">{formatDuration(session.duration)}</span>
-                </div>
-              ))}
-              
-              {/* Current Session */}
-              {isWorking && currentSessionStart && (
-                <div className="session-item current">
-                  <span className="session-number">#{todaySessions.length + 1}</span>
-                  <span className="session-time">{formatTime(currentSessionStart)} - En cours...</span>
-                  <span className="session-duration">🔄</span>
-                </div>
-              )}
+            <div style={styles.pointage.timeDetails}>
+              <span>Sessions: {todaySessions.length + (isWorking ? 1 : 0)}</span>
+              {isWorking && <span>⏱️ En cours</span>}
             </div>
           </div>
         )}
 
-        <div className="action-buttons">
+        <div style={styles.pointage.actionButtons}>
           <button 
-            className="btn-arrivee"
+            style={status === "Présent" ? 
+              styles.mergeStyles(styles.pointage.btnBase, styles.pointage.btnDisabled) :
+              styles.mergeStyles(styles.pointage.btnBase, styles.pointage.btnArrivee)
+            }
             onClick={handleClockIn}
             disabled={status === "Présent"}
           >
@@ -268,7 +254,10 @@ export default function Pointage({ onTimeUpdate }) {
           </button>
           
           <button 
-            className="btn-depart"
+            style={status === "Absent" ? 
+              styles.mergeStyles(styles.pointage.btnBase, styles.pointage.btnDisabled) :
+              styles.mergeStyles(styles.pointage.btnBase, styles.pointage.btnDepart)
+            }
             onClick={handleClockOut}
             disabled={status === "Absent"}
           >
@@ -276,13 +265,13 @@ export default function Pointage({ onTimeUpdate }) {
           </button>
         </div>
 
-        <div className="reminder">
+        <div style={styles.pointage.reminder}>
           <strong>Rappel:</strong> N'oubliez pas de pointer votre départ en fin de journée
         </div>
 
-        <div className="reset-section">
+        <div style={styles.pointage.resetSection}>
           <button 
-            className="btn-reset"
+            style={styles.pointage.btnReset}
             onClick={handleResetData}
             title="Réinitialiser toutes les données"
           >
