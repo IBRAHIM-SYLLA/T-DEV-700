@@ -7,7 +7,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn --transpile-only --ignore-watch node_modules --ignore-watch dist src/server.ts",
-    "test": "jest --coverage --runInBand"
+    "test": "jest --coverage --runInBand --detectOpenHandles --forceExit"
   },
   "keywords": [],
   "author": "",
