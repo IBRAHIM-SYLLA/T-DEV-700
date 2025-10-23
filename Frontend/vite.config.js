@@ -10,4 +10,15 @@ export default defineConfig({
       },
     }),
   ],
+    server: {
+    host: true,      
+    port: parseInt(process.env.FRONTEND_PORT),      
+    strictPort: true,
+    watch: {
+      usePolling: true, 
+    },
+  },
+  preview: {
+    port: 4173,
+  },
 })

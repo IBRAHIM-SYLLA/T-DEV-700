@@ -1,0 +1,80 @@
+version: "3.9"
+
+services:
+  mariadb:
+    image: mariadb:11
+    container_name: timemanager_mariadb
+    restart: always
+    env_file: ".env.docker"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+    ports:
+      - "${DB_PORT_OUT}:3306"
+    volumes:
+      - ./API/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - mariadb_data:/var/lib/mysql
+      - ./logs/db:/log/mysql
+    networks:
+      - timemanager_net
+  phpmyadmin:
+    container_name: timemanager_phpmyadmin
+    image: phpmyadmin:latest
+    restart: always
+    ports:
+      - "${PMA_PORT_OUT}:${PMA_PORT}"
+    env_file: ".env.docker"
+    environment:
+      PMA_HOST: mariadb
+      PMA_PORT: 3306
+      PMA_USER: ${DB_USER}
+      PMA_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      - mariadb
+    networks:
+      - timemanager_net
+
+  backend:
+    build:
+      context: ./API
+      dockerfile: Dockerfile
+    container_name: timemanager_backend
+    env_file: ".env.docker"
+    restart: always
+    ports:
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
+    depends_on:
+      - mariadb
+    command: npm run dev
+    volumes:
+      - ./API:/usr/src/app
+      - ./logs/api:/logs
+    working_dir: /app
+    networks:
+      - timemanager_net
+
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    container_name: timemanager_frontend
+    restart: always
+    env_file: ".env.docker"
+    ports:
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+    depends_on:
+      - backend
+    volumes:
+        - ./Frontend:/usr/src/app
+        - ./logs/frontend:/logs
+
+    working_dir: /app
+    command: npm run dev -- --host
+    networks:
+      - timemanager_net
+
+networks:
+  timemanager_net:
+
+volumes:
+  mariadb_data:

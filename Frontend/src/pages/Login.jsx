@@ -1,49 +1,86 @@
-import { useState } from "react";
-import { Container, Form, Button, Card } from "react-bootstrap";
+import React, { useState } from "react";
+import styles from "../style/style.ts";
 
-export default function Login() {
-  const [email, setEmail] = useState("");
+const demoAccounts = [
+  { role: "RH", username: "rh", password: "rh123" },
+  { role: "Manager", username: "manager", password: "manager123" },
+  { role: "Salarié", username: "salarie", password: "salarie123" }
+];
+
+export default function Login({ onLogin }) {
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
+  function handleSubmit(e) {
     e.preventDefault();
-    console.log("Email:", email);
-    console.log("Password:", password);
-    // authentication to be added
-  };
+    const user = demoAccounts.find(
+      (u) => u.username === username && u.password === password
+    );
+    if (user) {
+      setError("");
+      onLogin(user);
+    } else {
+      setError("Identifiants incorrects");
+    }
+  }
 
   return (
-    <Container className="d-flex justify-content-center align-items-center vh-100 bg-light">
-      <Card style={{ width: "22rem" }} className="p-4 shadow-lg">
-        <h3 className="text-center mb-4">Connexion</h3>
-        <Form onSubmit={handleSubmit}>
-          <Form.Group className="mb-3" controlId="formBasicEmail">
-            <Form.Label>Email</Form.Label>
-            <Form.Control
-              type="email"
-              placeholder="Entrez votre email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+    <div style={styles.login.container}>
+      <div style={styles.login.card}>
+        <div style={styles.login.header}>
+          <div style={styles.login.logoContainer}>
+            <span style={styles.login.logoIcon}>🕰</span>
+            <h1 style={styles.login.appTitle}>Time Manager</h1>
+          </div>
+          <p style={styles.login.appSubtitle}>Système de pointage entreprise</p>
+        </div>
+        <form style={styles.login.form} onSubmit={handleSubmit}>
+          <div style={styles.login.formGroup}>
+            <label style={styles.login.inputLabel}>Identifiant</label>
+            <input
+              type="text"
+              style={styles.login.inputField}
+              placeholder="Votre identifiant"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
             />
-          </Form.Group>
-
-          <Form.Group className="mb-3" controlId="formBasicPassword">
-            <Form.Label>Mot de passe</Form.Label>
-            <Form.Control
+          </div>
+          <div style={styles.login.formGroup}>
+            <label style={styles.login.inputLabel}>Mot de passe</label>
+            <input
               type="password"
-              placeholder="Mot de passe"
+              style={styles.login.inputField}
+              placeholder="Votre mot de passe"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-          </Form.Group>
-
-          <Button variant="primary" type="submit" className="w-100">
+            <button 
+              type="button" 
+              style={styles.login.forgotPasswordBtn}
+              onClick={() => alert("Fonctionnalité à venir")}
+            >
+              Mot de passe oublié ?
+            </button>
+          </div>
+          <button type="submit" style={styles.login.loginButton}>
             Se connecter
-          </Button>
-        </Form>
-      </Card>
-    </Container>
+          </button>
+        </form>
+        {error && <div style={styles.login.errorMessage}>{error}</div>}
+        <div style={styles.login.demoAccounts}>
+          <p style={styles.login.demoTitle}>Comptes de démonstration :</p>
+          <div style={styles.login.demoList}>
+            {demoAccounts.map((acc) => (
+              <p key={acc.role} style={styles.login.demoItem}>
+                <strong>{acc.role}:</strong> {acc.username} / {acc.password}
+              </p>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

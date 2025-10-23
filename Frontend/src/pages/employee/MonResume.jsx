@@ -10,116 +10,116 @@ export default function MonResume({ timeData }) {
   });
 
   const [weekDays, setWeekDays] = useState([
-    { day: "Lundi", clockIn: "--:--", clockOut: "--:--", worked: 0, overtime: 0, present: false },
-    { day: "Mardi", clockIn: "--:--", clockOut: "--:--", worked: 0, overtime: 0, present: false },
-    { day: "Mercredi", clockIn: "--:--", clockOut: "--:--", worked: 0, overtime: 0, present: false },
-    { day: "Jeudi", clockIn: "--:--", clockOut: "--:--", worked: 0, overtime: 0, present: false },
-    { day: "Vendredi", clockIn: "--:--", clockOut: "--:--", worked: 0, overtime: 0, present: false }
+    { 
+      day: "Lundi", 
+      clockIn: "--:--", 
+      clockOut: "--:--", 
+      worked: 0, 
+      overtime: 0, 
+      present: false 
+    },
+    { 
+      day: "Mardi", 
+      clockIn: "--:--", 
+      clockOut: "--:--", 
+      worked: 0, 
+      overtime: 0, 
+      present: false 
+    },
+    { 
+      day: "Mercredi", 
+      clockIn: "--:--", 
+      clockOut: "--:--", 
+      worked: 0, 
+      overtime: 0, 
+      present: false 
+    },
+    { 
+      day: "Jeudi", 
+      clockIn: "--:--", 
+      clockOut: "--:--", 
+      worked: 0, 
+      overtime: 0, 
+      present: false 
+    },
+    { 
+      day: "Vendredi", 
+      clockIn: "--:--", 
+      clockOut: "--:--", 
+      worked: 0, 
+      overtime: 0, 
+      present: false 
+    }
   ]);
 
   // Load data from localStorage and update today's data
   useEffect(() => {
-    const updateTodayData = () => {
-      const today = new Date().toDateString();
-      const savedTodayData = localStorage.getItem(`timeTrack_${today}`);
+    // Load today's data from localStorage
+    const today = new Date().toDateString();
+    const savedTodayData = localStorage.getItem(`timeTrack_${today}`);
+    
+    let todayTimeData = timeData;
+    if (savedTodayData) {
+      const saved = JSON.parse(savedTodayData);
+      todayTimeData = {
+        clockInTime: saved.clockInTime ? new Date(saved.clockInTime) : null,
+        clockOutTime: saved.clockOutTime ? new Date(saved.clockOutTime) : null,
+        dailyHours: saved.dailyHours || 0,
+        status: saved.status || "Absent"
+      };
+    }
+
+    if (todayTimeData && todayTimeData.clockInTime) {
+      const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const dayNames = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+      const todayName = dayNames[today];
       
-      if (savedTodayData) {
-        const saved = JSON.parse(savedTodayData);
-        const sessions = saved.sessions || [];
-        const isWorking = saved.isWorking || false;
-        const currentSessionStart = saved.currentSessionStart ? new Date(saved.currentSessionStart) : null;
-        
-        let firstClockIn = null;
-        let lastClockOut = null;
-        let totalHours = saved.totalHours || 0;
-        
-        if (sessions.length > 0) {
-          firstClockIn = sessions[0].clockIn;
-          lastClockOut = sessions[sessions.length - 1].clockOut;
-        } else if (isWorking && currentSessionStart) {
-          firstClockIn = currentSessionStart.toLocaleTimeString('fr-FR', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          });
-        }
-        
-        if (isWorking && currentSessionStart) {
-          const now = new Date();
-          const currentSessionHours = (now - currentSessionStart) / (1000 * 60 * 60);
-          const sessionsHours = sessions.reduce((total, session) => total + session.duration, 0);
-          totalHours = sessionsHours + currentSessionHours;
-        }
-        
-        updateWeekDays({
-          clockInTime: firstClockIn,
-          clockOutTime: lastClockOut && !isWorking ? lastClockOut : null,
-          dailyHours: totalHours,
-          status: saved.status || "Absent",
-          isWorking: isWorking
+      setWeekDays(prevDays => {
+        const updatedDays = prevDays.map(dayData => {
+          if (dayData.day === todayName) {
+            const clockIn = todayTimeData.clockInTime.toLocaleTimeString('fr-FR', { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            });
+            const clockOut = todayTimeData.clockOutTime ? 
+              todayTimeData.clockOutTime.toLocaleTimeString('fr-FR', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              }) : null;
+            
+            const standardHours = 8;
+            const overtime = Math.max(0, todayTimeData.dailyHours - standardHours);
+            
+            return {
+              ...dayData,
+              clockIn,
+              clockOut: clockOut || '--:--',
+              worked: todayTimeData.dailyHours,
+              overtime,
+              present: todayTimeData.status === "Présent" || todayTimeData.clockOutTime !== null
+            };
+          }
+          return dayData;
         });
-      } else if (timeData && timeData.clockInTime) {
-        updateWeekDays(timeData);
-      }
-    };
-
-    const updateWeekDays = (todayTimeData) => {
-      if (todayTimeData && (todayTimeData.clockInTime || todayTimeData.isWorking)) {
-        const today = new Date().getDay();
-        const dayNames = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
-        const todayName = dayNames[today];
         
-        setWeekDays(prevDays => {
-          const updatedDays = prevDays.map(dayData => {
-            if (dayData.day === todayName) {
-              const clockIn = typeof todayTimeData.clockInTime === 'string' ? 
-                todayTimeData.clockInTime : 
-                (todayTimeData.clockInTime ? todayTimeData.clockInTime.toLocaleTimeString('fr-FR', { 
-                  hour: '2-digit', 
-                  minute: '2-digit' 
-                }) : '--:--');
-                
-              const clockOut = typeof todayTimeData.clockOutTime === 'string' ?
-                todayTimeData.clockOutTime :
-                (todayTimeData.clockOutTime ? todayTimeData.clockOutTime.toLocaleTimeString('fr-FR', { 
-                  hour: '2-digit', 
-                  minute: '2-digit' 
-                }) : (todayTimeData.isWorking ? 'En cours...' : '--:--'));
-              
-              const standardHours = 8;
-              const overtime = Math.max(0, todayTimeData.dailyHours - standardHours);
-              
-              return {
-                ...dayData,
-                clockIn,
-                clockOut,
-                worked: todayTimeData.dailyHours,
-                overtime,
-                present: todayTimeData.status === "Présent" || todayTimeData.isWorking || todayTimeData.clockOutTime !== null
-              };
-            }
-            return dayData;
-          });
-          
-          const totalWorked = updatedDays.reduce((sum, day) => sum + (day.present ? day.worked : 0), 0);
-          const totalOvertime = updatedDays.reduce((sum, day) => sum + day.overtime, 0);
-          const daysPresent = updatedDays.filter(day => day.present).length;
-          
-          setWeeklyData({
-            totalHours: totalWorked,
-            overtimeHours: totalOvertime,
-            daysWorked: daysPresent,
-            totalDays: 5
-          });
-          
-          return updatedDays;
+        // Recalculate weekly totals
+        const totalWorked = updatedDays.reduce((sum, day) => sum + (day.present ? day.worked : 0), 0);
+        const totalOvertime = updatedDays.reduce((sum, day) => sum + day.overtime, 0);
+        const daysPresent = updatedDays.filter(day => day.present).length;
+        
+        setWeeklyData({
+          totalHours: totalWorked,
+          overtimeHours: totalOvertime,
+          daysWorked: daysPresent,
+          totalDays: 5
         });
-      }
-    };
-
-    updateTodayData();
+        
+        return updatedDays;
+      });
+    }
   }, [timeData]);
 
-  // Check localStorage periodically for updates
+  // Also check localStorage periodically for updates
   useEffect(() => {
     const interval = setInterval(() => {
       const today = new Date().toDateString();
@@ -127,71 +127,49 @@ export default function MonResume({ timeData }) {
       
       if (savedTodayData) {
         const saved = JSON.parse(savedTodayData);
-        const sessions = saved.sessions || [];
-        const isWorking = saved.isWorking || false;
-        const currentSessionStart = saved.currentSessionStart ? new Date(saved.currentSessionStart) : null;
-        
-        let firstClockIn = null;
-        let lastClockOut = null;
-        let totalHours = saved.totalHours || 0;
-        
-        if (sessions.length > 0) {
-          firstClockIn = sessions[0].clockIn;
-          lastClockOut = sessions[sessions.length - 1].clockOut;
-        } else if (isWorking && currentSessionStart) {
-          firstClockIn = currentSessionStart.toLocaleTimeString('fr-FR', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
+        const todayTimeData = {
+          clockInTime: saved.clockInTime ? new Date(saved.clockInTime) : null,
+          clockOutTime: saved.clockOutTime ? new Date(saved.clockOutTime) : null,
+          dailyHours: saved.dailyHours || 0,
+          status: saved.status || "Absent"
+        };
+
+        if (todayTimeData.clockInTime) {
+          const today = new Date().getDay();
+          const dayNames = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+          const todayName = dayNames[today];
+
+          setWeekDays(prevDays => {
+            return prevDays.map(dayData => {
+              if (dayData.day === todayName) {
+                const clockIn = todayTimeData.clockInTime.toLocaleTimeString('fr-FR', { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                });
+                const clockOut = todayTimeData.clockOutTime ? 
+                  todayTimeData.clockOutTime.toLocaleTimeString('fr-FR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  }) : '--:--';
+                
+                const standardHours = 8;
+                const overtime = Math.max(0, todayTimeData.dailyHours - standardHours);
+                
+                return {
+                  ...dayData,
+                  clockIn,
+                  clockOut,
+                  worked: todayTimeData.dailyHours,
+                  overtime,
+                  present: todayTimeData.status === "Présent" || todayTimeData.clockOutTime !== null
+                };
+              }
+              return dayData;
+            });
           });
         }
-        
-        if (isWorking && currentSessionStart) {
-          const now = new Date();
-          const currentSessionHours = (now - currentSessionStart) / (1000 * 60 * 60);
-          const sessionsHours = sessions.reduce((total, session) => total + session.duration, 0);
-          totalHours = sessionsHours + currentSessionHours;
-        }
-
-        const currentDay = new Date().getDay();
-        const dayNames = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
-        const todayName = dayNames[currentDay];
-
-        setWeekDays(prevDays => {
-          const updatedDays = prevDays.map(dayData => {
-            if (dayData.day === todayName) {
-              const clockIn = firstClockIn || '--:--';
-              const clockOut = lastClockOut && !isWorking ? lastClockOut : (isWorking ? 'En cours...' : '--:--');
-              
-              const standardHours = 8;
-              const overtime = Math.max(0, totalHours - standardHours);
-              
-              return {
-                ...dayData,
-                clockIn,
-                clockOut,
-                worked: totalHours,
-                overtime,
-                present: saved.status === "Présent" || isWorking || sessions.length > 0
-              };
-            }
-            return dayData;
-          });
-          
-          const totalWorked = updatedDays.reduce((sum, day) => sum + (day.present ? day.worked : 0), 0);
-          const totalOvertime = updatedDays.reduce((sum, day) => sum + day.overtime, 0);
-          const daysPresent = updatedDays.filter(day => day.present).length;
-          
-          setWeeklyData({
-            totalHours: totalWorked,
-            overtimeHours: totalOvertime,
-            daysWorked: daysPresent,
-            totalDays: 5
-          });
-          
-          return updatedDays;
-        });
       }
-    }, 2000);
+    }, 1000); // Check every second
 
     return () => clearInterval(interval);
   }, []);
@@ -199,7 +177,7 @@ export default function MonResume({ timeData }) {
   const formatDuration = (hours) => {
     if (hours === 0) return "0h 00m";
     const h = Math.floor(hours);
-    const m = Math.round((hours - h) * 60);
+    const m = Math.floor((hours - h) * 60);
     return `${h}h ${m.toString().padStart(2, '0')}m`;
   };
 

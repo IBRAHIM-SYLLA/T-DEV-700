@@ -1,50 +1,81 @@
-// import { useState } from 'react'
-// import reactLogo from './assets/react.svg'
-// import viteLogo from '/vite.svg'
-// import './App.css'
 
-// function App() {
-//   const [count, setCount] = useState(0)
-
-//   return (
-//     <>
-//       <div>
-//         <a href="https://vite.dev" target="_blank">
-//           <img src={viteLogo} className="logo" alt="Vite logo" />
-//         </a>
-//         <a href="https://react.dev" target="_blank">
-//           <img src={reactLogo} className="logo react" alt="React logo" />
-//         </a>
-//       </div>
-//       <h1>Vite + React</h1>
-//       <div className="card">
-//         <button onClick={() => setCount((count) => count + 1)}>
-//           count is {count}
-//         </button>
-//         <p>
-//           Edit <code>src/App.jsx</code> and save to test HMR
-//         </p>
-//       </div>
-//       <p className="read-the-docs">
-//         Click on the Vite and React logos to learn more
-//       </p>
-//     </>
-//   )
-// }
-
-// export default App
-
+import React, { useState } from "react";
 import Login from "./pages/Login";
-
+import EmployeeDashboard from "./pages/EmployeeDashboard";
 
 function App() {
+  const [user, setUser] = useState(null);
+
+  const handleLogin = (userData) => {
+    setUser(userData);
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+  };
+
+  // Role-based routing - currently only Employee dashboard
+  const renderDashboard = () => {
+    if (!user) return null;
+
+    switch (user.role) {
+      case "Salarié":
+        return <EmployeeDashboard user={user} onLogout={handleLogout} />;
+      case "Manager":
+        return (
+          <div style={{ padding: '20px', textAlign: 'center' }}>
+            <h1>Manager Dashboard</h1>
+            <p>En cours de développement...</p>
+            <button 
+              onClick={handleLogout}
+              style={{
+                background: '#dc2626',
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                marginTop: '20px'
+              }}
+            >
+              Déconnexion
+            </button>
+          </div>
+        );
+      case "RH":
+        return (
+          <div style={{ padding: '20px', textAlign: 'center' }}>
+            <h1>Admin Dashboard (RH)</h1>
+            <p>En cours de développement...</p>
+            <button 
+              onClick={handleLogout}
+              style={{
+                background: '#dc2626',
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                marginTop: '20px'
+              }}
+            >
+              Déconnexion
+            </button>
+          </div>
+        );
+      default:
+        return <div>Rôle non reconnu</div>;
+    }
+  };
+
   return (
-    <>
-
-    
-      <Login />
-
-    </>
+    <div className="app">
+      {!user ? (
+        <Login onLogin={handleLogin} />
+      ) : (
+        renderDashboard()
+      )}
+    </div>
   );
 }
 

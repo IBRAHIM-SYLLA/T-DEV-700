@@ -16,9 +16,7 @@ export const globalStyles = {
     margin: 0,
     padding: 0,
     background: '#f8fafc',
-    boxSizing: 'border-box',
-    width: '100%',
-    minHeight: '100vh'
+    boxSizing: 'border-box'
   } as CSSProperties
 };
 
@@ -189,11 +187,7 @@ export const dashboardStyles = {
   container: {
     fontFamily: "'Inter', sans-serif",
     minHeight: '100vh',
-    background: '#f8fafc',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'flex-start'
+    background: '#f8fafc'
   } as CSSProperties,
 
   header: {
@@ -203,9 +197,7 @@ export const dashboardStyles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-    width: '100%',
-    maxWidth: '1200px'
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
   } as CSSProperties,
 
   headerLeft: {
@@ -266,9 +258,7 @@ export const dashboardStyles = {
     borderBottom: '1px solid #e2e8f0',
     padding: '0 24px',
     display: 'flex',
-    gap: 0,
-    width: '100%',
-    maxWidth: '1200px'
+    gap: 0
   } as CSSProperties,
 
   navTab: {
@@ -298,18 +288,11 @@ export const dashboardStyles = {
   } as CSSProperties,
 
   main: {
-    padding: '24px',
-    backgroundColor: '#f8fafc',
-    width: '100%',
-    maxWidth: '1200px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center'
+    padding: '32px 24px'
   } as CSSProperties,
 
   contentContainer: {
-    width: '100%',
-    maxWidth: '1200px',
+    maxWidth: '600px',
     margin: '0 auto',
     background: 'white',
     borderRadius: '12px',
@@ -326,12 +309,7 @@ export const pointageStyles = {
   container: {
     padding: '40px',
     maxWidth: '800px',
-    margin: '0 auto',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '60vh'
+    margin: '0 auto'
   } as CSSProperties,
 
   content: {
@@ -489,12 +467,8 @@ export const pointageStyles = {
 export const resumeStyles = {
   container: {
     padding: '32px',
-    maxWidth: '1100px',
-    margin: '0 auto',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    minHeight: '100%'
+    maxWidth: '1200px',
+    margin: '0 auto'
   } as CSSProperties,
 
   title: {
@@ -685,13 +659,7 @@ export const resumeStyles = {
 
 export const historyStyles = {
   container: {
-    padding: '32px',
-    maxWidth: '1100px',
-    margin: '0 auto',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    minHeight: '100%'
+    padding: '32px'
   } as CSSProperties,
 
   content: {
