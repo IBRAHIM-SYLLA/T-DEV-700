@@ -1,85 +1,87 @@
-name: 🔄 CI – Build & Tests TimeManager
+name: CI – Build & Tests TimeManager
 
 on:
   push:
-    branches: [ main, dev ]
+    branches:
+      - '**'
   pull_request:
-    branches: [ main, dev ]
+    branches:
+      - main
 
 jobs:
   build:
-    name: 🏗️ Build du projet
+    name: Build du projet
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout du code
+      - name: Checkout du code
         uses: actions/checkout@v4
 
-      - name: 🔧 Installation Node.js
+      - name: Installation Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: 📦 Installation des dépendances backend
+      - name: Installation des dépendances backend
         working-directory: ./API
         run: npm install
 
-      - name: 🧱 Build du backend
+      - name: Build du backend
         working-directory: ./API
         run: npm run build || echo "Aucun build requis pour le backend"
 
-      - name: 📦 Installation des dépendances frontend
+      - name: Installation des dépendances frontend
         working-directory: ./Frontend
         run: npm install
 
-      - name: 🧱 Build du frontend
+      - name: Build du frontend
         working-directory: ./Frontend
         run: npm run build
   test:
-    name: 🧪 Tests + Coverage Backend
+    name: Tests + Coverage Backend
     runs-on: ubuntu-latest
     needs: build
 
     steps:
-      - name: 📥 Checkout du code
+      - name: Checkout du code
         uses: actions/checkout@v4
 
-      - name: 🔧 Installation Node.js
+      - name: Installation Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: 📦 Installation des dépendances backend
+      - name: Installation des dépendances backend
         working-directory: ./API
         run: npm ci
 
-      - name: 🧪 Exécution des tests Jest
+      - name: Exécution des tests Jest
         working-directory: ./API
         run: npm run test -- --coverage
 
-      - name: 📊 Sauvegarde du rapport de couverture
+      - name: Sauvegarde du rapport de couverture
         uses: actions/upload-artifact@v4
         with:
           name: couverture-backend
           path: API/coverage/
   lint:
-    name: 🧹 Vérification Lint
+    name: Vérification Lint
     runs-on: ubuntu-latest
     needs: build
 
     steps:
-      - name: 📥 Checkout du code
+      - name: Checkout du code
         uses: actions/checkout@v4
 
-      - name: 🔧 Installation Node.js
+      - name: Installation Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: 📦 Installation du backend
+      - name: Installation du backend
         working-directory: ./API
         run: npm install
 
-      - name: 🚦 Lancement du lint
+      - name: Lancement du lint
         working-directory: ./API
         run: npm run lint || echo "⚠️ Aucun script lint défini"
