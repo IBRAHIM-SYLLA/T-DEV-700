@@ -37,3 +37,13 @@ describe('✅ USERS ROUTES', () => {
     expect(res.body[0].first_name).toBe('John');
   });
 });
+
+afterAll(async () => {
+  if (typeof pool?.end === 'function') {
+    await pool.end();
+  }
+
+  if (app && app.close) {
+    await app.close();
+  }
+});
