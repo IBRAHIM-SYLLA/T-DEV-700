@@ -248,6 +248,21 @@ export const dashboardStyles = {
     fontSize: '14px'
   } as CSSProperties,
 
+  editProfileBtn: {
+    background: '#3b82f6',
+    color: 'white',
+    border: 'none',
+    padding: '8px 16px',
+    borderRadius: '6px',
+    fontWeight: 500,
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    fontSize: '14px'
+  } as CSSProperties,
+
   logoutBtn: {
     background: '#dc2626',
     color: 'white',
@@ -846,6 +861,257 @@ export const historyStyles = {
 };
 
 // ==============================
+// PROFILE STYLES
+// ==============================
+
+export const profileStyles = {
+  container: {
+    padding: '32px',
+    maxWidth: '800px',
+    margin: '0 auto',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    minHeight: '100%'
+  } as CSSProperties,
+
+  content: {
+    width: '100%',
+    maxWidth: '700px'
+  } as CSSProperties,
+
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    marginBottom: '24px',
+    gap: '16px'
+  } as CSSProperties,
+
+  backBtn: {
+    background: '#f1f5f9',
+    color: '#475569',
+    border: 'none',
+    padding: '8px 16px',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: 500,
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px'
+  } as CSSProperties,
+
+  title: {
+    fontSize: '24px',
+    color: '#1e293b',
+    fontWeight: 600,
+    margin: 0
+  } as CSSProperties,
+
+  successMessage: {
+    background: '#dcfce7',
+    color: '#166534',
+    border: '1px solid #bbf7d0',
+    borderRadius: '8px',
+    padding: '12px 16px',
+    marginBottom: '24px',
+    fontSize: '14px',
+    fontWeight: 500
+  } as CSSProperties,
+
+  card: {
+    background: 'white',
+    borderRadius: '12px',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+    border: '1px solid #e2e8f0',
+    overflow: 'hidden',
+    marginBottom: '24px'
+  } as CSSProperties,
+
+  cardHeader: {
+    padding: '24px',
+    borderBottom: '1px solid #e2e8f0',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px'
+  } as CSSProperties,
+
+  avatar: {
+    width: '64px',
+    height: '64px',
+    borderRadius: '50%',
+    background: '#f1f5f9',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '24px'
+  } as CSSProperties,
+
+  avatarIcon: {
+    fontSize: '24px',
+    color: '#64748b'
+  } as CSSProperties,
+
+  userInfo: {
+    flex: 1
+  } as CSSProperties,
+
+  userName: {
+    fontSize: '20px',
+    fontWeight: 600,
+    color: '#1e293b',
+    margin: '0 0 4px 0'
+  } as CSSProperties,
+
+  userRole: {
+    color: '#64748b',
+    fontSize: '14px',
+    background: '#f1f5f9',
+    padding: '4px 8px',
+    borderRadius: '12px',
+    display: 'inline-block'
+  } as CSSProperties,
+
+  editBtn: {
+    background: '#3b82f6',
+    color: 'white',
+    border: 'none',
+    padding: '8px 16px',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: 500,
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px'
+  } as CSSProperties,
+
+  form: {
+    padding: '24px'
+  } as CSSProperties,
+
+  formRow: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '20px',
+    marginBottom: '20px'
+  } as CSSProperties,
+
+  formGroup: {
+    marginBottom: '20px'
+  } as CSSProperties,
+
+  label: {
+    display: 'block',
+    color: '#374151',
+    fontSize: '14px',
+    fontWeight: 500,
+    marginBottom: '8px'
+  } as CSSProperties,
+
+  input: {
+    width: '100%',
+    padding: '12px 16px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    fontSize: '16px',
+    color: '#374151',
+    background: 'white',
+    transition: 'all 0.2s ease',
+    outline: 'none',
+    boxSizing: 'border-box'
+  } as CSSProperties,
+
+  inputDisabled: {
+    background: '#f9fafb',
+    color: '#6b7280',
+    cursor: 'not-allowed'
+  } as CSSProperties,
+
+  inputError: {
+    borderColor: '#dc2626',
+    boxShadow: '0 0 0 3px rgba(220, 38, 38, 0.1)'
+  } as CSSProperties,
+
+  errorText: {
+    color: '#dc2626',
+    fontSize: '12px',
+    marginTop: '4px',
+    display: 'block'
+  } as CSSProperties,
+
+  actions: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '12px',
+    padding: '24px',
+    borderTop: '1px solid #e2e8f0',
+    background: '#f9fafb'
+  } as CSSProperties,
+
+  cancelBtn: {
+    background: '#f1f5f9',
+    color: '#475569',
+    border: 'none',
+    padding: '10px 20px',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: 500,
+    cursor: 'pointer',
+    transition: 'all 0.2s'
+  } as CSSProperties,
+
+  saveBtn: {
+    background: '#10b981',
+    color: 'white',
+    border: 'none',
+    padding: '10px 20px',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: 500,
+    cursor: 'pointer',
+    transition: 'all 0.2s'
+  } as CSSProperties,
+
+  infoCard: {
+    background: 'white',
+    borderRadius: '12px',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+    border: '1px solid #e2e8f0',
+    padding: '24px'
+  } as CSSProperties,
+
+  infoTitle: {
+    fontSize: '16px',
+    fontWeight: 600,
+    color: '#1e293b',
+    margin: '0 0 16px 0'
+  } as CSSProperties,
+
+  infoRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '8px 0',
+    borderBottom: '1px solid #f1f5f9'
+  } as CSSProperties,
+
+  infoLabel: {
+    color: '#64748b',
+    fontSize: '14px',
+    fontWeight: 500
+  } as CSSProperties,
+
+  infoValue: {
+    color: '#1e293b',
+    fontSize: '14px',
+    fontWeight: 500
+  } as CSSProperties
+};
+
+// ==============================
 // RESPONSIVE BREAKPOINTS
 // ==============================
 
@@ -879,6 +1145,7 @@ export default {
   pointage: pointageStyles,
   resume: resumeStyles,
   history: historyStyles,
+  profile: profileStyles,
   responsive,
   mergeStyles,
   createHoverStyle

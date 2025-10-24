@@ -14,17 +14,18 @@ function App() {
     setUser(null);
   };
 
-  // Role-based routing - currently only Employee dashboard
+  // Role-based routing with database roles
   const renderDashboard = () => {
     if (!user) return null;
 
     switch (user.role) {
-      case "Salarié":
+      case "employee":
         return <EmployeeDashboard user={user} onLogout={handleLogout} />;
-      case "Manager":
+      case "manager":
         return (
           <div style={{ padding: '20px', textAlign: 'center' }}>
             <h1>Manager Dashboard</h1>
+            <p>Connecté en tant que : <strong>{user.firstName} {user.lastName}</strong></p>
             <p>En cours de développement...</p>
             <button 
               onClick={handleLogout}
@@ -42,10 +43,11 @@ function App() {
             </button>
           </div>
         );
-      case "RH":
+      case "super_admin":
         return (
           <div style={{ padding: '20px', textAlign: 'center' }}>
-            <h1>Admin Dashboard (RH)</h1>
+            <h1>Admin Dashboard</h1>
+            <p>Connecté en tant que : <strong>{user.firstName} {user.lastName}</strong></p>
             <p>En cours de développement...</p>
             <button 
               onClick={handleLogout}
@@ -64,7 +66,27 @@ function App() {
           </div>
         );
       default:
-        return <div>Rôle non reconnu</div>;
+        return (
+          <div style={{ padding: '20px', textAlign: 'center' }}>
+            <h1>Rôle non reconnu</h1>
+            <p>Rôle utilisateur : <strong>{user.role}</strong></p>
+            <p>Utilisateur : <strong>{user.firstName} {user.lastName}</strong></p>
+            <button 
+              onClick={handleLogout}
+              style={{
+                background: '#dc2626',
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                marginTop: '20px'
+              }}
+            >
+              Déconnexion
+            </button>
+          </div>
+        );
     }
   };
 
