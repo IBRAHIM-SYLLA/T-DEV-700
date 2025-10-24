@@ -4,6 +4,7 @@ import styles from "../../style/style.ts";
 export default function Historique({ timeData }) {
   const [selectedMonth, setSelectedMonth] = useState("Ce mois");
   const [historyRecords, setHistoryRecords] = useState([]);
+  const [filteredRecords, setFilteredRecords] = useState([]);
 
   const [monthlyStats, setMonthlyStats] = useState({
     daysWorked: 0,
@@ -18,9 +19,16 @@ export default function Historique({ timeData }) {
     
     // Add some default demo data if no history exists
     if (history.length === 0) {
+      const today = new Date();
+      const currentMonth = (today.getMonth() + 1).toString().padStart(2, '0');
+      const prevMonth = today.getMonth() === 0 ? '12' : (today.getMonth()).toString().padStart(2, '0');
+      const currentYear = today.getFullYear();
+      const prevYear = today.getMonth() === 0 ? currentYear - 1 : currentYear;
+      
       const demoData = [
+        // Ce mois
         {
-          date: "14/01/2025",
+          date: `22/${currentMonth}/${currentYear}`,
           clockIn: "08:15",
           clockOut: "17:30",
           duration: 8.75,
@@ -28,7 +36,7 @@ export default function Historique({ timeData }) {
           status: "Complet"
         },
         {
-          date: "13/01/2025",
+          date: `21/${currentMonth}/${currentYear}`,
           clockIn: "08:45",
           clockOut: "17:30",
           duration: 8.25,
@@ -36,28 +44,56 @@ export default function Historique({ timeData }) {
           status: "Retard"
         },
         {
-          date: "12/01/2025",
+          date: `20/${currentMonth}/${currentYear}`,
           clockIn: "08:00",
           clockOut: "17:00",
           duration: 8.0,
           overtime: 0,
           status: "Complet"
+        },
+        // Mois précédent
+        {
+          date: `28/${prevMonth}/${prevYear}`,
+          clockIn: "08:30",
+          clockOut: "17:15",
+          duration: 8.25,
+          overtime: 0.25,
+          status: "Complet"
+        },
+        {
+          date: `27/${prevMonth}/${prevYear}`,
+          clockIn: "09:00",
+          clockOut: "18:00",
+          duration: 8.5,
+          overtime: 0.5,
+          status: "Retard"
+        },
+        // Il y a 2 mois (pour test 3 mois)
+        {
+          date: `15/${(today.getMonth() - 1).toString().padStart(2, '0')}/${currentYear}`,
+          clockIn: "08:00",
+          clockOut: "16:30",
+          duration: 7.5,
+          overtime: 0,
+          status: "Incomplet"
         }
       ];
       localStorage.setItem('timeTrack_history', JSON.stringify(demoData));
       setHistoryRecords(demoData);
+      setFilteredRecords(filterRecords(demoData, selectedMonth));
     } else {
       setHistoryRecords(history);
+      setFilteredRecords(filterRecords(history, selectedMonth));
     }
   }, []);
 
-  // Update statistics when history changes
+  // Update statistics when filtered records change
   useEffect(() => {
-    if (historyRecords.length > 0) {
-      const totalDays = historyRecords.length;
-      const totalHours = historyRecords.reduce((sum, record) => sum + record.duration, 0);
-      const totalOvertime = historyRecords.reduce((sum, record) => sum + record.overtime, 0);
-      const delays = historyRecords.filter(record => record.status === "Retard").length;
+    if (filteredRecords.length > 0) {
+      const totalDays = filteredRecords.length;
+      const totalHours = filteredRecords.reduce((sum, record) => sum + record.duration, 0);
+      const totalOvertime = filteredRecords.reduce((sum, record) => sum + record.overtime, 0);
+      const delays = filteredRecords.filter(record => record.status === "Retard").length;
       
       setMonthlyStats({
         daysWorked: totalDays,
@@ -65,8 +101,16 @@ export default function Historique({ timeData }) {
         overtimeHours: Math.round(totalOvertime),
         delays
       });
+    } else {
+      // Reset stats when no records match filter
+      setMonthlyStats({
+        daysWorked: 0,
+        totalHours: 0,
+        overtimeHours: 0,
+        delays: 0
+      });
     }
-  }, [historyRecords]);
+  }, [filteredRecords]);
 
   // Add today's record if timeData is provided and complete
   useEffect(() => {
@@ -74,8 +118,9 @@ export default function Historique({ timeData }) {
     if (timeData && timeData.clockOutTime) {
       const history = JSON.parse(localStorage.getItem('timeTrack_history') || '[]');
       setHistoryRecords(history);
+      setFilteredRecords(filterRecords(history, selectedMonth));
     }
-  }, [timeData]);
+  }, [timeData, selectedMonth]);
 
   const formatDuration = (hours) => {
     const h = Math.floor(hours);
@@ -83,9 +128,42 @@ export default function Historique({ timeData }) {
     return `${h}h ${m.toString().padStart(2, '0')}m`;
   };
 
+  // Filter records based on selected period
+  const filterRecords = (records, period) => {
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    return records.filter(record => {
+      // Parse date from "DD/MM/YYYY" format
+      const dateParts = record.date.split('/');
+      const recordDate = new Date(parseInt(dateParts[2]), parseInt(dateParts[1]) - 1, parseInt(dateParts[0]));
+      
+      switch (period) {
+        case "Ce mois":
+          return recordDate.getMonth() === currentMonth && recordDate.getFullYear() === currentYear;
+          
+        case "Mois précédent":
+          const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+          const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+          return recordDate.getMonth() === prevMonth && recordDate.getFullYear() === prevYear;
+          
+        case "Dernier 3 mois":
+          const threeMonthsAgo = new Date(today);
+          threeMonthsAgo.setMonth(today.getMonth() - 3);
+          return recordDate >= threeMonthsAgo && recordDate <= today;
+          
+        default:
+          return true;
+      }
+    });
+  };
+
   const handleMonthChange = (event) => {
-    setSelectedMonth(event.target.value);
-    // Here you could filter records based on selected month
+    const newPeriod = event.target.value;
+    setSelectedMonth(newPeriod);
+    const filtered = filterRecords(historyRecords, newPeriod);
+    setFilteredRecords(filtered);
   };
 
   return (
@@ -117,27 +195,35 @@ export default function Historique({ timeData }) {
               </tr>
             </thead>
             <tbody>
-              {historyRecords.map((record, index) => (
-                <tr key={index}>
-                  <td style={styles.history.td}>{record.date}</td>
-                  <td style={styles.history.td}>{record.clockIn}</td>
-                  <td style={styles.history.td}>{record.clockOut}</td>
-                  <td style={styles.history.td}>{formatDuration(record.duration)}</td>
-                  <td style={styles.mergeStyles(styles.history.td, styles.history.overtimeCell)}>
-                    {record.overtime > 0 ? formatDuration(record.overtime) : '-'}
-                  </td>
-                  <td style={styles.history.td}>
-                    <span style={styles.mergeStyles(
-                      styles.history.statusBadge,
-                      record.status.toLowerCase() === 'complet' ? styles.history.statusBadgeComplete :
-                      record.status.toLowerCase() === 'retard' ? styles.history.statusBadgeDelay :
-                      styles.history.statusBadgeIncomplete
-                    )}>
-                      {record.status}
-                    </span>
+              {filteredRecords.length > 0 ? (
+                filteredRecords.map((record, index) => (
+                  <tr key={index}>
+                    <td style={styles.history.td}>{record.date}</td>
+                    <td style={styles.history.td}>{record.clockIn}</td>
+                    <td style={styles.history.td}>{record.clockOut}</td>
+                    <td style={styles.history.td}>{formatDuration(record.duration)}</td>
+                    <td style={styles.mergeStyles(styles.history.td, styles.history.overtimeCell)}>
+                      {record.overtime > 0 ? formatDuration(record.overtime) : '-'}
+                    </td>
+                    <td style={styles.history.td}>
+                      <span style={styles.mergeStyles(
+                        styles.history.statusBadge,
+                        record.status.toLowerCase() === 'complet' ? styles.history.statusBadgeComplete :
+                        record.status.toLowerCase() === 'retard' ? styles.history.statusBadgeDelay :
+                        styles.history.statusBadgeIncomplete
+                      )}>
+                        {record.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="6" style={{...styles.history.td, textAlign: 'center', padding: '2rem', color: '#6b7280'}}>
+                    Aucun enregistrement trouvé pour la période sélectionnée
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
