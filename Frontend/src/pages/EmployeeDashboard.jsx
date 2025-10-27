@@ -49,7 +49,7 @@ export default function EmployeeDashboard({ user, onLogout }) {
 
   return (
     <div style={styles.dashboard.container}>
-      {/* Header */}
+      {/* Header avec logo cliquable */}
       <header style={styles.dashboard.header}>
         <div style={styles.dashboard.headerLeft}>
           <div style={styles.dashboard.logoSection}>
