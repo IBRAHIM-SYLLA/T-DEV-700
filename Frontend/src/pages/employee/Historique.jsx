@@ -33,7 +33,8 @@ export default function Historique({ timeData }) {
           clockOut: "17:30",
           duration: 8.75,
           overtime: 0.75,
-          status: "Complet"
+          status: "Complet",
+          attendanceStatus: "À l'heure"
         },
         {
           date: `21/${currentMonth}/${currentYear}`,
@@ -41,7 +42,8 @@ export default function Historique({ timeData }) {
           clockOut: "17:30",
           duration: 8.25,
           overtime: 0.25,
-          status: "Retard"
+          status: "Complet",
+          attendanceStatus: "Retard (10min)"
         },
         {
           date: `20/${currentMonth}/${currentYear}`,
@@ -191,6 +193,7 @@ export default function Historique({ timeData }) {
                 <th style={styles.history.th}>DÉPART</th>
                 <th style={styles.history.th}>DURÉE</th>
                 <th style={styles.history.th}>H. SUP.</th>
+                <th style={styles.history.th}>PONCTUALITÉ</th>
                 <th style={styles.history.th}>STATUT</th>
               </tr>
             </thead>

@@ -215,7 +215,20 @@ export const dashboardStyles = {
   logoSection: {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px'
+    gap: '8px',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '8px 12px',
+    borderRadius: '8px',
+    transition: 'all 0.2s ease',
+    fontSize: 'inherit',
+    fontFamily: 'inherit'
+  } as CSSProperties,
+
+  logoSectionHover: {
+    background: '#f1f5f9',
+    transform: 'translateY(-1px)'
   } as CSSProperties,
 
   logoIcon: {
@@ -470,28 +483,6 @@ export const pointageStyles = {
     background: '#eff6ff',
     borderRadius: '8px',
     borderLeft: '4px solid #3b82f6'
-  } as CSSProperties,
-
-  resetSection: {
-    marginTop: '24px',
-    paddingTop: '20px',
-    borderTop: '1px solid #e5e7eb',
-    textAlign: 'center'
-  } as CSSProperties,
-
-  btnReset: {
-    background: '#ef4444',
-    color: 'white',
-    border: 'none',
-    padding: '10px 20px',
-    borderRadius: '6px',
-    fontSize: '14px',
-    fontWeight: 500,
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px'
   } as CSSProperties
 };
 
@@ -689,6 +680,29 @@ export const resumeStyles = {
     fontSize: '20px',
     fontWeight: 700,
     color: '#3b82f6'
+  } as CSSProperties,
+
+  // Styles pour le statut de ponctualité
+  attendanceStatus: {
+    padding: '4px 8px',
+    borderRadius: '8px',
+    fontSize: '12px',
+    fontWeight: 600,
+    display: 'inline-block',
+    marginLeft: '8px',
+    marginRight: '8px'
+  } as CSSProperties,
+
+  attendanceStatusOnTime: {
+    background: '#dcfce7',
+    color: '#166534',
+    border: '1px solid #bbf7d0'
+  } as CSSProperties,
+
+  attendanceStatusLate: {
+    background: '#fee2e2',
+    color: '#b91c1c',
+    border: '1px solid #fca5a5'
   } as CSSProperties
 };
 
