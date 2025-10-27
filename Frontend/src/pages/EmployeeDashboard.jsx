@@ -10,6 +10,7 @@ export default function EmployeeDashboard({ user, onLogout }) {
   const [timeData, setTimeData] = useState(null);
   const [currentUser, setCurrentUser] = useState(user);
   const [showProfile, setShowProfile] = useState(false);
+  const [logoHovered, setLogoHovered] = useState(false);
 
   // Handle time updates from Pointage component
   const handleTimeUpdate = (data) => {
