@@ -108,46 +108,13 @@ export default function MonResume({ timeData }) {
             const overtime = Math.max(0, worked - 8);
             const present = parsedData.status === "Présent" || parsedData.isWorking || sessions.length > 0;
             
-            // Calculer le statut de ponctualité
-            let attendanceStatus = "Absent";
-            if (present) {
-              if (sessions.length > 0 && sessions[0].attendanceStatus) {
-                attendanceStatus = sessions[0].attendanceStatus;
-              } else if (parsedData.attendanceStatus) {
-                attendanceStatus = parsedData.attendanceStatus;
-              } else {
-                // Calculer le statut si pas encore sauvegardé
-                if (clockIn !== "--:--") {
-                  const clockInParts = clockIn.split(":");
-                  const clockInDate = new Date();
-                  clockInDate.setHours(parseInt(clockInParts[0]), parseInt(clockInParts[1]), 0, 0);
-                  
-                  const workStart = new Date();
-                  workStart.setHours(9, 0, 0, 0);
-                  
-                  const tolerance = new Date();
-                  tolerance.setHours(9, 5, 0, 0);
-                  
-                  if (clockInDate <= workStart) {
-                    attendanceStatus = "À l'heure";
-                  } else if (clockInDate <= tolerance) {
-                    attendanceStatus = "À l'heure";
-                  } else {
-                    const lateMinutes = Math.floor((clockInDate - tolerance) / (1000 * 60));
-                    attendanceStatus = `Retard (${lateMinutes}min)`;
-                  }
-                }
-              }
-            }
-            
             return {
               ...day,
               clockIn,
               clockOut,
               worked,
               overtime,
-              present,
-              attendanceStatus
+              present
             };
           }
           return day;

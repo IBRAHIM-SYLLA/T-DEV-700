@@ -38,7 +38,7 @@ export default function Historique({ timeData }) {
         },
         {
           date: `21/${currentMonth}/${currentYear}`,
-          clockIn: "09:15",
+          clockIn: "08:45",
           clockOut: "17:30",
           duration: 8.25,
           overtime: 0.25,
@@ -47,12 +47,11 @@ export default function Historique({ timeData }) {
         },
         {
           date: `20/${currentMonth}/${currentYear}`,
-          clockIn: "08:58",
+          clockIn: "08:00",
           clockOut: "17:00",
           duration: 8.0,
           overtime: 0,
-          status: "Complet",
-          attendanceStatus: "À l'heure"
+          status: "Complet"
         },
         // Mois précédent
         {
@@ -61,17 +60,15 @@ export default function Historique({ timeData }) {
           clockOut: "17:15",
           duration: 8.25,
           overtime: 0.25,
-          status: "Complet",
-          attendanceStatus: "À l'heure"
+          status: "Complet"
         },
         {
           date: `27/${prevMonth}/${prevYear}`,
-          clockIn: "09:12",
+          clockIn: "09:00",
           clockOut: "18:00",
           duration: 8.5,
           overtime: 0.5,
-          status: "Complet",
-          attendanceStatus: "Retard (7min)"
+          status: "Retard"
         },
         // Il y a 2 mois (pour test 3 mois)
         {
@@ -80,8 +77,7 @@ export default function Historique({ timeData }) {
           clockOut: "16:30",
           duration: 7.5,
           overtime: 0,
-          status: "Incomplet",
-          attendanceStatus: "À l'heure"
+          status: "Incomplet"
         }
       ];
       localStorage.setItem('timeTrack_history', JSON.stringify(demoData));
@@ -213,14 +209,6 @@ export default function Historique({ timeData }) {
                       {record.overtime > 0 ? formatDuration(record.overtime) : '-'}
                     </td>
                     <td style={styles.history.td}>
-                      <span style={{
-                        ...styles.attendanceStatus,
-                        ...(record.attendanceStatus === 'À l\'heure' ? styles.attendanceStatusOnTime : styles.attendanceStatusLate)
-                      }}>
-                        {record.attendanceStatus}
-                      </span>
-                    </td>
-                    <td style={styles.history.td}>
                       <span style={styles.mergeStyles(
                         styles.history.statusBadge,
                         record.status.toLowerCase() === 'complet' ? styles.history.statusBadgeComplete :
@@ -234,7 +222,7 @@ export default function Historique({ timeData }) {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7" style={{...styles.history.td, textAlign: 'center', padding: '2rem', color: '#6b7280'}}>
+                  <td colSpan="6" style={{...styles.history.td, textAlign: 'center', padding: '2rem', color: '#6b7280'}}>
                     Aucun enregistrement trouvé pour la période sélectionnée
                   </td>
                 </tr>
