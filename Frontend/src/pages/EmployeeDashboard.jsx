@@ -52,7 +52,6 @@ export default function EmployeeDashboard({ user, onLogout }) {
       {/* Header avec logo cliquable */}
       <header style={styles.dashboard.header}>
         <div style={styles.dashboard.headerLeft}>
-          <div style={styles.dashboard.logoSection}>
           <button 
             style={logoHovered ? 
               styles.mergeStyles(styles.dashboard.logoSection, styles.dashboard.logoSectionHover) : 
@@ -68,7 +67,7 @@ export default function EmployeeDashboard({ user, onLogout }) {
           >
             <span style={styles.dashboard.logoIcon}>⏰</span>
             <span style={styles.dashboard.appName}>TimeTrack Pro</span>
-          </div>
+          </button>
           <span style={styles.dashboard.userRole}>Employé</span>
         </div>
         <div style={styles.dashboard.headerRight}>
