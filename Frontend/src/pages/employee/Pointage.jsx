@@ -1,6 +1,45 @@
 import React, { useState, useEffect } from "react";
 import styles from "../../style/style.ts";
 
+// Fonctions utilitaires pour le formatage du temps
+const formatTime = (date) => {
+  return date.toLocaleTimeString('fr-FR', { 
+    hour: '2-digit', 
+    minute: '2-digit'
+  });
+};
+
+const formatDate = (date) => {
+  return date.toLocaleDateString('fr-FR');
+};
+
+const formatDuration = (hours) => {
+  const h = Math.floor(hours);
+  const m = Math.floor((hours - h) * 60);
+  return `${h}h ${m.toString().padStart(2, '0')}m`;
+};
+
+// Fonction pour calculer le statut de ponctualité
+const calculateAttendanceStatus = (clockInTime) => {
+  if (!clockInTime) return "Absent";
+  
+  const clockIn = new Date(clockInTime);
+  const workStartTime = new Date(clockIn);
+  workStartTime.setHours(9, 0, 0, 0); // 9h00
+  
+  const toleranceTime = new Date(clockIn);
+  toleranceTime.setHours(9, 5, 0, 0); // 9h05 (tolérance +5min)
+  
+  if (clockIn <= workStartTime) {
+    return "À l'heure";
+  } else if (clockIn <= toleranceTime) {
+    return "À l'heure"; // Dans la tolérance
+  } else {
+    const lateMinutes = Math.floor((clockIn - toleranceTime) / (1000 * 60));
+    return `Retard (${lateMinutes}min)`;
+  }
+};
+
 export default function Pointage({ onTimeUpdate }) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [status, setStatus] = useState("Absent");
@@ -73,28 +112,14 @@ export default function Pointage({ onTimeUpdate }) {
     return () => clearInterval(timer);
   }, [isWorking, currentSessionStart, status, onTimeUpdate, todaySessions]);
 
-  const formatTime = (date) => {
-    return date.toLocaleTimeString('fr-FR', { 
-      hour: '2-digit', 
-      minute: '2-digit'
-    });
-  };
-
-  const formatDate = (date) => {
-    return date.toLocaleDateString('fr-FR');
-  };
-
-  const formatDuration = (hours) => {
-    const h = Math.floor(hours);
-    const m = Math.floor((hours - h) * 60);
-    return `${h}h ${m.toString().padStart(2, '0')}m`;
-  };
-
   const handleClockIn = () => {
     const now = new Date();
     setCurrentSessionStart(now);
     setStatus("Présent");
     setIsWorking(true);
+    
+    // Calculer le statut de ponctualité
+    const attendanceStatus = calculateAttendanceStatus(now.toISOString());
     
     // Save to localStorage
     const today = new Date().toDateString();
@@ -104,12 +129,13 @@ export default function Pointage({ onTimeUpdate }) {
       currentSessionStart: now.toISOString(),
       sessions: todaySessions,
       totalHours: dailyHours,
-      date: today
+      date: today,
+      attendanceStatus: attendanceStatus
     };
     localStorage.setItem(`timeTrack_${today}`, JSON.stringify(timeData));
     
     const sessionNumber = todaySessions.length + 1;
-    alert(`Session ${sessionNumber} - Arrivée pointée à ${formatTime(now)}`);
+    alert(`Session ${sessionNumber} - Arrivée pointée à ${formatTime(now)}\nStatut: ${attendanceStatus}`);
   };
 
   const handleClockOut = () => {
@@ -121,14 +147,18 @@ export default function Pointage({ onTimeUpdate }) {
       // Calculer la durée de la session actuelle
       const sessionDuration = (now - currentSessionStart) / (1000 * 60 * 60);
       
-      // Créer la nouvelle session
+      // Calculer le statut de ponctualité pour cette session
+      const attendanceStatus = calculateAttendanceStatus(currentSessionStart.toISOString());
+      
+      // Créer la nouvelle session avec le statut de ponctualité
       const newSession = {
         sessionNumber: todaySessions.length + 1,
         clockIn: formatTime(currentSessionStart),
         clockOut: formatTime(now),
         duration: sessionDuration,
         startTime: currentSessionStart.toISOString(),
-        endTime: now.toISOString()
+        endTime: now.toISOString(),
+        attendanceStatus: attendanceStatus
       };
       
       // Ajouter à la liste des sessions
@@ -159,6 +189,12 @@ export default function Pointage({ onTimeUpdate }) {
       const firstSession = updatedSessions[0];
       const lastSession = updatedSessions[updatedSessions.length - 1];
       
+      // Calculer le statut global de la journée
+      const hasLateSession = updatedSessions.some(session => 
+        session.attendanceStatus && session.attendanceStatus.includes("Retard")
+      );
+      const dailyAttendanceStatus = hasLateSession ? "Retard" : "À l'heure";
+      
       const todayRecord = {
         date: now.toLocaleDateString('fr-FR'),
         clockIn: firstSession.clockIn,
@@ -166,7 +202,9 @@ export default function Pointage({ onTimeUpdate }) {
         duration: totalHours,
         overtime: Math.max(0, totalHours - 8),
         status: totalHours >= 8 ? "Complet" : "Incomplet",
-        sessions: updatedSessions.length
+        sessions: updatedSessions.length,
+        attendanceStatus: dailyAttendanceStatus,
+        sessionsDetail: updatedSessions
       };
       
       // Remplacer ou ajouter l'enregistrement d'aujourd'hui
@@ -188,42 +226,7 @@ export default function Pointage({ onTimeUpdate }) {
     }
   };
 
-  const handleResetData = () => {
-    if (window.confirm("Êtes-vous sûr de vouloir effacer toutes les données de pointage ?")) {
-      // Clear all localStorage data
-      const keysToRemove = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('timeTrack_')) {
-          keysToRemove.push(key);
-        }
-      }
-      
-      keysToRemove.forEach(key => localStorage.removeItem(key));
-      
-      // Reset component state
-      setStatus("Absent");
-      setCurrentSessionStart(null);
-      setDailyHours(0);
-      setIsWorking(false);
-      setTodaySessions([]);
-      
-      // Notify parent
-      if (onTimeUpdate) {
-        onTimeUpdate({
-          status: "Absent",
-          sessions: [],
-          dailyHours: 0,
-          isWorking: false
-        });
-      }
-      
-      alert("Toutes les données ont été réinitialisées !");
-      
-      // Reload the page to ensure all components are reset
-      window.location.reload();
-    }
-  };
+
 
   return (
     <div style={styles.pointage.container}>
@@ -282,16 +285,6 @@ export default function Pointage({ onTimeUpdate }) {
 
         <div style={styles.pointage.reminder}>
           <strong>Rappel:</strong> N'oubliez pas de pointer votre départ en fin de journée
-        </div>
-
-        <div style={styles.pointage.resetSection}>
-          <button 
-            style={styles.pointage.btnReset}
-            onClick={handleResetData}
-            title="Réinitialiser toutes les données"
-          >
-            🗑️ Réinitialiser les données
-          </button>
         </div>
       </div>
     </div>
