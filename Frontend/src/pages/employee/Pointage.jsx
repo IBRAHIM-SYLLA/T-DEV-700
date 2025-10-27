@@ -19,24 +19,42 @@ const formatDuration = (hours) => {
   return `${h}h ${m.toString().padStart(2, '0')}m`;
 };
 
-// Fonction pour calculer le statut de ponctualité
+// Fonction pour calculer le statut de ponctualité selon les règles métier
 const calculateAttendanceStatus = (clockInTime) => {
   if (!clockInTime) return "Absent";
   
   const clockIn = new Date(clockInTime);
-  const workStartTime = new Date(clockIn);
-  workStartTime.setHours(9, 0, 0, 0); // 9h00
+  const hours = clockIn.getHours();
+  const minutes = clockIn.getMinutes();
+  const totalMinutes = hours * 60 + minutes;
   
-  const toleranceTime = new Date(clockIn);
-  toleranceTime.setHours(9, 5, 0, 0); // 9h05 (tolérance +5min)
+  // Heures de travail : 9h00-18h00 avec pause 12h00-14h00
+  const workStart = 9 * 60; // 9h00 = 540 minutes
+  const toleranceEnd = 9 * 60 + 5; // 9h05 = 545 minutes
+  const lunchStart = 12 * 60; // 12h00 = 720 minutes
+  const lunchEnd = 14 * 60; // 14h00 = 840 minutes
+  const workEnd = 18 * 60; // 18h00 = 1080 minutes
   
-  if (clockIn <= workStartTime) {
+  // Vérification des heures de travail valides
+  if (totalMinutes < workStart) {
+    // Pointage avant 9h00 - Arrivée anticipée
     return "À l'heure";
-  } else if (clockIn <= toleranceTime) {
-    return "À l'heure"; // Dans la tolérance
-  } else {
-    const lateMinutes = Math.floor((clockIn - toleranceTime) / (1000 * 60));
+  } else if (totalMinutes <= toleranceEnd) {
+    // Entre 9h00 et 9h05 - Dans la tolérance
+    return "À l'heure";
+  } else if (totalMinutes < lunchStart) {
+    // Entre 9h05 et 12h00 - Retard matinal
+    const lateMinutes = totalMinutes - toleranceEnd;
     return `Retard (${lateMinutes}min)`;
+  } else if (totalMinutes >= lunchStart && totalMinutes < lunchEnd) {
+    // Entre 12h00 et 14h00 - Pause déjeuner
+    return "Pause déjeuner";
+  } else if (totalMinutes >= lunchEnd && totalMinutes <= workEnd) {
+    // Entre 14h00 et 18h00 - Reprise après pause
+    return "Reprise après pause";
+  } else {
+    // Après 18h00 - Hors horaires de travail
+    return "Hors horaires";
   }
 };
 
@@ -135,7 +153,19 @@ export default function Pointage({ onTimeUpdate }) {
     localStorage.setItem(`timeTrack_${today}`, JSON.stringify(timeData));
     
     const sessionNumber = todaySessions.length + 1;
-    alert(`Session ${sessionNumber} - Arrivée pointée à ${formatTime(now)}\nStatut: ${attendanceStatus}`);
+    
+    // Message informatif selon les règles métier
+    let message = `Session ${sessionNumber} - Arrivée pointée à ${formatTime(now)}\nStatut: ${attendanceStatus}`;
+    
+    if (attendanceStatus === "Hors horaires") {
+      message += "\n⚠️ Attention: Pointage en dehors des heures de travail (9h-18h)";
+    } else if (attendanceStatus === "Pause déjeuner") {
+      message += "\n🍽️ Pointage pendant la pause déjeuner (12h-14h)";
+    } else if (attendanceStatus.includes("Retard")) {
+      message += "\n⏰ Rappel: Les heures de travail commencent à 9h00 (tolérance jusqu'à 9h05)";
+    }
+    
+    alert(message);
   };
 
   const handleClockOut = () => {
