@@ -10,6 +10,7 @@ export default function EmployeeDashboard({ user, onLogout }) {
   const [timeData, setTimeData] = useState(null);
   const [currentUser, setCurrentUser] = useState(user);
   const [showProfile, setShowProfile] = useState(false);
+  const [logoHovered, setLogoHovered] = useState(false);
 
   // Handle time updates from Pointage component
   const handleTimeUpdate = (data) => {
@@ -52,10 +53,22 @@ export default function EmployeeDashboard({ user, onLogout }) {
       {/* Header */}
       <header style={styles.dashboard.header}>
         <div style={styles.dashboard.headerLeft}>
-          <div style={styles.dashboard.logoSection}>
+          <button 
+            style={logoHovered ? 
+              styles.mergeStyles(styles.dashboard.logoSection, styles.dashboard.logoSectionHover) : 
+              styles.dashboard.logoSection
+            }
+            onClick={() => {
+              setActiveTab("Pointage");
+              setShowProfile(false);
+            }}
+            onMouseEnter={() => setLogoHovered(true)}
+            onMouseLeave={() => setLogoHovered(false)}
+            title="Retour à l'accueil - Pointage"
+          >
             <span style={styles.dashboard.logoIcon}>⏰</span>
             <span style={styles.dashboard.appName}>TimeTrack Pro</span>
-          </div>
+          </button>
           <span style={styles.dashboard.userRole}>Employé</span>
         </div>
         <div style={styles.dashboard.headerRight}>
