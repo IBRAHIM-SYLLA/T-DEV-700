@@ -52,6 +52,7 @@ export default function EmployeeDashboard({ user, onLogout }) {
       {/* Header */}
       <header style={styles.dashboard.header}>
         <div style={styles.dashboard.headerLeft}>
+          <div style={styles.dashboard.logoSection}>
           <button 
             style={logoHovered ? 
               styles.mergeStyles(styles.dashboard.logoSection, styles.dashboard.logoSectionHover) : 
