@@ -1,4 +1,6 @@
+import { find } from "lodash";
 import { UserModel } from "../models/user.model";
+import { UserRepository } from "../repository/UserRepository";
 
 export class UserHelper {
 
@@ -89,4 +91,16 @@ export class UserHelper {
         user.role = req.body.role;
         return user;
     }
+
+    // getUserForTeam(team_id: number): UserModel[] {
+    //     let repo: UserRepository = new UserRepository();
+    //     const users = await repo.getAllUsers();
+    //     let usersForTeams: UserModel[] = [];
+    //     let result: UserModel[] = users.find() ?? new UserModel();
+    //     if (result) {
+    //         usersForTeams = result;
+
+    //     }
+    //     return usersForTeams;
+    // }
 }
