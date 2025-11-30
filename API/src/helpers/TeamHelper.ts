@@ -51,4 +51,12 @@ export class TeamHelper {
         return team;
     }
 
+    teamModelByReqBody(req: any): TeamModel {
+        const team = new TeamModel();
+        team.name = req.body.name;
+        team.description = req.body.description;
+        team.manager_id = req.body.manager_id;
+        return team;
+    }
+
 }
