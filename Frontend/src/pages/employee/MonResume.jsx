@@ -207,6 +207,17 @@ export default function MonResume({ timeData }) {
                 <span style={styles.resume.timeRange}>
                   {dayData.present ? `${dayData.clockIn} - ${dayData.clockOut || '--:--'}` : 'Absent'}
                 </span>
+                {/* Statut de ponctualité */}
+                {dayData.present && (
+                  <span style={{
+                    ...styles.resume.attendanceStatus,
+                    ...(dayData.attendanceStatus && dayData.attendanceStatus.includes("Retard") 
+                      ? styles.resume.attendanceStatusLate 
+                      : styles.resume.attendanceStatusOnTime)
+                  }}>
+                    {dayData.attendanceStatus || "À l'heure"}
+                  </span>
+                )}
                 <span style={styles.resume.hoursWorked}>
                   {dayData.present ? formatDuration(dayData.worked) : '--:--'}
                 </span>
