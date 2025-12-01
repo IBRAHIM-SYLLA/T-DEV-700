@@ -25,7 +25,7 @@ jest.mock('../src/config/database', () => {
 });
 
 import request from 'supertest';
-import { pool } from '../src/config/database';
+
 const app = require('../src/server').default;
 
 describe('✅ USERS ROUTES', () => {
@@ -37,4 +37,5 @@ describe('✅ USERS ROUTES', () => {
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body[0].first_name).toBe('John');
   });
+
 });
