@@ -65,6 +65,7 @@ export default function Pointage({ onTimeUpdate }) {
   const [dailyHours, setDailyHours] = useState(0);
   const [isWorking, setIsWorking] = useState(false);
   const [todaySessions, setTodaySessions] = useState([]);
+  const [attendanceStatus, setAttendanceStatus] = useState(null);
 
   // Load data from localStorage on component mount
   useEffect(() => {
@@ -77,6 +78,7 @@ export default function Pointage({ onTimeUpdate }) {
       setIsWorking(data.isWorking || false);
       setDailyHours(data.totalHours || 0);
       setTodaySessions(data.sessions || []);
+      setAttendanceStatus(data.attendanceStatus || null);
       
       // Si en cours de travail, récupérer la session actuelle
       if (data.isWorking && data.currentSessionStart) {
@@ -133,16 +135,20 @@ export default function Pointage({ onTimeUpdate }) {
   const handleClockIn = () => {
     const now = new Date();
     setCurrentSessionStart(now);
-    setStatus("Présent");
     setIsWorking(true);
     
     // Calculer le statut de ponctualité
     const attendanceStatus = calculateAttendanceStatus(now.toISOString());
+    setAttendanceStatus(attendanceStatus);
+    
+    // Définir le statut correct (ne pas forcer "Présent" si hors horaires)
+    const actualStatus = attendanceStatus === "Hors horaires" ? "Hors horaires" : "Présent";
+    setStatus(actualStatus);
     
     // Save to localStorage
     const today = new Date().toDateString();
     const timeData = {
-      status: "Présent",
+      status: actualStatus,
       isWorking: true,
       currentSessionStart: now.toISOString(),
       sessions: todaySessions,
@@ -155,14 +161,16 @@ export default function Pointage({ onTimeUpdate }) {
     const sessionNumber = todaySessions.length + 1;
     
     // Message informatif selon les règles métier
-    let message = `Session ${sessionNumber} - Arrivée pointée à ${formatTime(now)}\nStatut: ${attendanceStatus}`;
+    let message = `Session ${sessionNumber} - Arrivée pointée à ${formatTime(now)}\n✅ Statut de ponctualité: ${attendanceStatus}`;
     
     if (attendanceStatus === "Hors horaires") {
-      message += "\n⚠️ Attention: Pointage en dehors des heures de travail (9h-18h)";
+      message += "\n\n⚠️ ATTENTION: Pointage en dehors des heures de travail!\n📅 Horaires normaux: 9h00-18h00 (avec pause 12h-14h)";
     } else if (attendanceStatus === "Pause déjeuner") {
-      message += "\n🍽️ Pointage pendant la pause déjeuner (12h-14h)";
+      message += "\n\n🍽️ INFO: Pointage pendant la pause déjeuner (12h00-14h00)\n⚠️ Cette période n'est pas comptabilisée";
     } else if (attendanceStatus.includes("Retard")) {
-      message += "\n⏰ Rappel: Les heures de travail commencent à 9h00 (tolérance jusqu'à 9h05)";
+      message += "\n\n⏰ RAPPEL: Les heures de travail commencent à 9h00\n✓ Tolérance: jusqu'à 9h05";
+    } else if (attendanceStatus === "À l'heure") {
+      message += "\n\n✅ Excellent! Vous êtes à l'heure.";
     }
     
     alert(message);
@@ -272,9 +280,36 @@ export default function Pointage({ onTimeUpdate }) {
             styles.pointage.statusValue,
             status === "Absent" ? styles.pointage.statusAbsent : styles.pointage.statusPresent
           )}>
-            {status === "Absent" ? "❌ Absent" : "✅ Présent"}
+            {status === "Absent" ? "❌ Absent" : status === "Hors horaires" ? "⚠️ Hors horaires" : "✅ Présent"}
           </div>
         </div>
+
+        {/* Attendance Status Display */}
+        {attendanceStatus && isWorking && (
+          <div style={{
+            ...styles.pointage.dailyHoursDisplay,
+            backgroundColor: attendanceStatus.includes("Retard") ? "#fff3cd" : 
+                           attendanceStatus === "Hors horaires" ? "#f8d7da" :
+                           attendanceStatus === "À l'heure" ? "#d4edda" : "#d1ecf1",
+            border: `2px solid ${attendanceStatus.includes("Retard") ? "#ffc107" : 
+                                 attendanceStatus === "Hors horaires" ? "#dc3545" :
+                                 attendanceStatus === "À l'heure" ? "#28a745" : "#17a2b8"}`,
+            marginTop: "15px"
+          }}>
+            <div style={styles.pointage.hoursLabel}>Statut de ponctualité</div>
+            <div style={{
+              ...styles.pointage.hoursValue,
+              color: attendanceStatus.includes("Retard") ? "#856404" : 
+                     attendanceStatus === "Hors horaires" ? "#721c24" :
+                     attendanceStatus === "À l'heure" ? "#155724" : "#0c5460",
+              fontSize: "1.3em"
+            }}>
+              {attendanceStatus.includes("Retard") ? "⏰" : 
+               attendanceStatus === "Hors horaires" ? "⚠️" :
+               attendanceStatus === "À l'heure" ? "✅" : "ℹ️"} {attendanceStatus}
+            </div>
+          </div>
+        )}
 
         {/* Daily Hours Display */}
         {(todaySessions.length > 0 || isWorking) && (
@@ -291,12 +326,12 @@ export default function Pointage({ onTimeUpdate }) {
 
         <div style={styles.pointage.actionButtons}>
           <button 
-            style={status === "Présent" ? 
+            style={(status === "Présent" || status === "Hors horaires") ? 
               styles.mergeStyles(styles.pointage.btnBase, styles.pointage.btnDisabled) :
               styles.mergeStyles(styles.pointage.btnBase, styles.pointage.btnArrivee)
             }
             onClick={handleClockIn}
-            disabled={status === "Présent"}
+            disabled={status === "Présent" || status === "Hors horaires"}
           >
             📍 Pointer l'arrivée
           </button>
