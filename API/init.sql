@@ -68,7 +68,7 @@ INSERT INTO users (
     role
 ) VALUES
 ('Admin', 'System', 'admin@timemanager.com', '+33612345678', 'admin123', NULL, 'super_admin'),
-('Alice', 'Dupont', 'alice.dupont@timemanager.com', '+33623456789', 'password123', NULL, 'manager'),
+('Alice', 'Dupont', 'alice.dupont@timemanager.com', '+33623456789', 'password123', 1, 'manager'),
 ('Bruno', 'Martin', 'bruno.martin@timemanager.com', '+33634567890', 'securepass', 1, 'employee'),
 ('Claire', 'Bernard', 'claire.bernard@timemanager.com', '+33645678901', 'azerty2025', 1, 'employee'),
 ('Son', 'Goku', 'songoku@timemanager.com', '+33656789012', 'kamehameha', 2, 'employee'),

@@ -1,3 +1,4 @@
+import { AppDataSource } from "../config/database";
 import { TeamHelper } from "../helpers/TeamHelper";
 import { TeamModel } from "../models/team.model";
 import { TeamRepository } from "../repository/TeamRepository";
@@ -8,7 +9,12 @@ export class TeamService {
     constructor(private teamRepository: TeamRepository) { }
 
     async getAllTeams(): Promise<TeamModel[]> {
-        return this.teamRepository.getAllTeams();
+        const teamRepo = AppDataSource.getRepository(TeamModel);
+
+        const teams = await teamRepo.find({
+            relations: ["manager", "members"]
+        });
+        return teams;
     }
 
     async getTeamById(teamId: number): Promise<TeamModel> {
