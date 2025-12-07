@@ -1,14 +1,18 @@
 import { TeamModel } from "../models/team.model";
+import { UserModel } from "../models/user.model";
+import { UserHelper } from "./UserHelper";
 
 export class TeamHelper {
 
+    userHelper: UserHelper = new UserHelper();
+    ROLE_MANAGER: string = "manager";
+
     getReqAllTeams(): string {
-        return `SELECT t.team_id
+        return `SELECT t.team_id,
                     t.name,
                     t.description,
                     t.manager_id
-                FROM teams t
-                INNER JOIN users u`;
+                FROM teams t`;
     }
 
     getReqTeamById(teamId: number): string {
@@ -43,11 +47,13 @@ export class TeamHelper {
         `;
     }
 
-    toTeamModelBySqlRow(row: any): TeamModel {
+    async toTeamModelBySqlRow(row: any): Promise<TeamModel> {
         const team = new TeamModel();
         team.team_id = row.team_id;
         team.name = row.name;
         team.description = row.description;
+        team.members = await this.userHelper.getUserForTeam(team.team_id);
+        team.manager = team.members.find(m => m.role == this.ROLE_MANAGER) ?? new UserModel();
         return team;
     }
 

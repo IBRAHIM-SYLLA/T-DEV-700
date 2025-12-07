@@ -1,4 +1,3 @@
-import { find } from "lodash";
 import { UserModel } from "../models/user.model";
 import { UserRepository } from "../repository/UserRepository";
 
@@ -75,7 +74,7 @@ export class UserHelper {
         user.email = row.email;
         user.phone_number = row.phone_number;
         user.password = row.password;
-        user.team_id = row.team_id;
+        // user.team_id = row.team_id;
         user.role = row.role;
         return user;
     }
@@ -87,20 +86,19 @@ export class UserHelper {
         user.email = req.body.email;
         user.phone_number = req.body.phone_number;
         user.password = hashedPassword;
-        user.team_id = req.body.team_id;
+        // user.team_id = req.body.team_id;
         user.role = req.body.role;
         return user;
     }
 
-    // getUserForTeam(team_id: number): UserModel[] {
-    //     let repo: UserRepository = new UserRepository();
-    //     const users = await repo.getAllUsers();
-    //     let usersForTeams: UserModel[] = [];
-    //     let result: UserModel[] = users.find() ?? new UserModel();
-    //     if (result) {
-    //         usersForTeams = result;
-
-    //     }
-    //     return usersForTeams;
-    // }
+    async getUserForTeam(team_id: number): Promise<UserModel[]> {
+        let repo: UserRepository = new UserRepository();
+        const users = await repo.getAllUsers();
+        let usersForTeams: UserModel[] = [];
+        // let result: UserModel[] = users.filter(u => u.team_id == team_id);
+        // if (result.length > 0) {
+        //     usersForTeams = result;
+        // }
+        return usersForTeams;
+    }
 }

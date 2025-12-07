@@ -6,31 +6,31 @@ export class TeamRepository {
 
     teamHelper: TeamHelper = new TeamHelper();
 
-    /**
-     * @name getAllTeams()
-     * @memberof TeamRepository
-     * @description Retourne toute les équipes
-     * @returns Promise<TeamModel[]>
-     */
-    async getAllTeams(): Promise<TeamModel[]> {
-        let conn;
-        try {
-            conn = await pool.getConnection();
-            const rows = await conn.query(this.teamHelper.getReqAllTeams());
+    // /**
+    //  * @name getAllTeams()
+    //  * @memberof TeamRepository
+    //  * @description Retourne toute les équipes
+    //  * @returns Promise<TeamModel[]>
+    //  */
+    // async getAllTeams(): Promise<TeamModel[]> {
+    //     let conn;
+    //     try {
+    //         conn = await pool.getConnection();
+    //         const rows = await conn.query(this.teamHelper.getReqAllTeams());
 
-            // Si ton driver MariaDB retourne une première ligne meta, supprime-la :
-            if (Array.isArray(rows) && rows.length > 0 && typeof rows[0] === "object") {
-                return rows.map((row: TeamModel) => this.teamHelper.toTeamModelBySqlRow(row));
-            }
+    //         // Si ton driver MariaDB retourne une première ligne meta, supprime-la :
+    //         if (Array.isArray(rows) && rows.length > 0 && typeof rows[0] === "object") {
+    //             return await.Promise rows.map((row: TeamModel) => this.teamHelper.toTeamModelBySqlRow(row));
+    //         }
 
-            return [];
-        } catch (error) {
-            console.error("Erreur lors de la récupération des équipes :", error);
-            throw error;
-        } finally {
-            if (conn) conn.release();
-        }
-    }
+    //         return [];
+    //     } catch (error) {
+    //         console.error("Erreur lors de la récupération des équipes :", error);
+    //         throw error;
+    //     } finally {
+    //         if (conn) conn.release();
+    //     }
+    // }
 
     /**
      * @name getTeamById()
@@ -70,7 +70,7 @@ export class TeamRepository {
         const params = [
             team.name,
             team.description,
-            team.manager_id
+            // team.manager_id
         ];
         let conn;
         try {
@@ -97,7 +97,7 @@ export class TeamRepository {
             const params = [
                 team.name,
                 team.description,
-                team.manager_id
+                // team.manager_id
             ];
             let conn;
             try {
