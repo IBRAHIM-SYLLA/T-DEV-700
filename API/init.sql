@@ -47,14 +47,15 @@ CREATE TABLE IF NOT EXISTS clocks (
 CREATE TABLE IF NOT EXISTS work_schedules (
     schedule_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    day_of_week ENUM('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday') NOT NULL,
+    /*day_of_week ENUM('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday') NOT NULL,*/
+    schedule_date DATE , -- Nouvelle colonne pour la date complète
     expected_arrival_time TIME NULL,
     expected_departure_time TIME NULL,
     is_working_day BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_schedules_users FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-    UNIQUE KEY unique_user_day (user_id, day_of_week)
+    UNIQUE KEY unique_user_day (user_id, schedule_date)
 );
 
 -- ============================================
@@ -78,39 +79,38 @@ INSERT INTO users (first_name, last_name, email, phone_number, password, team_id
 -- Mise à jour du manager des équipes (Alice est manager des deux équipes pour le test)
 UPDATE teams SET manager_id = 2 WHERE team_id IN (1, 2);
 
--- Plannings : Bruno (Lun-Ven 9h-18h)
-INSERT INTO work_schedules (user_id, day_of_week, expected_arrival_time, expected_departure_time, is_working_day) VALUES
-(3, 'monday', '09:00:00', '18:00:00', TRUE),
-(3, 'tuesday', '09:00:00', '18:00:00', TRUE),
-(3, 'wednesday', '09:00:00', '18:00:00', TRUE),
-(3, 'thursday', '09:00:00', '18:00:00', TRUE),
-(3, 'friday', '09:00:00', '18:00:00', TRUE),
-(3, 'saturday', NULL, NULL, FALSE),
-(3, 'sunday', NULL, NULL, FALSE);
+-- Plannings : Bruno (Lun-Ven 9h-18h) - ADAPTÉ AUX DATES SPÉCIFIQUES
+INSERT INTO work_schedules (user_id, schedule_date, expected_arrival_time, expected_departure_time, is_working_day) VALUES
+(3, '2025-12-01', '09:00:00', '18:00:00', TRUE),
+(3, '2025-12-02', '09:00:00', '18:00:00', TRUE),
+(3, '2025-12-03', '09:00:00', '18:00:00', TRUE),
+(3, '2025-12-04', '09:00:00', '18:00:00', TRUE),
+(3, '2025-12-05', '09:00:00', '18:00:00', TRUE),
+(3, '2025-12-06', NULL, NULL, FALSE), -- Samedi
+(3, '2025-12-07', NULL, NULL, FALSE); -- Dimanche
 
--- Plannings : Claire (Lun-Jeu 8h-17h, Ven 8h-12h)
-INSERT INTO work_schedules (user_id, day_of_week, expected_arrival_time, expected_departure_time, is_working_day) VALUES
-(4, 'monday', '08:00:00', '17:00:00', TRUE),
-(4, 'tuesday', '08:00:00', '17:00:00', TRUE),
-(4, 'wednesday', '08:00:00', '17:00:00', TRUE),
-(4, 'thursday', '08:00:00', '17:00:00', TRUE),
-(4, 'friday', '08:00:00', '12:00:00', TRUE),
-(4, 'saturday', NULL, NULL, FALSE),
-(4, 'sunday', NULL, NULL, FALSE);
+-- Plannings : Claire (Lun-Jeu 8h-17h, Ven 8h-12h) - ADAPTÉ AUX DATES SPÉCIFIQUES
+INSERT INTO work_schedules (user_id, schedule_date, expected_arrival_time, expected_departure_time, is_working_day) VALUES
+(4, '2025-12-01', '08:00:00', '17:00:00', TRUE),
+(4, '2025-12-02', '08:00:00', '17:00:00', TRUE),
+(4, '2025-12-03', '08:00:00', '17:00:00', TRUE),
+(4, '2025-12-04', '08:00:00', '17:00:00', TRUE),
+(4, '2025-12-05', '08:00:00', '12:00:00', TRUE),
+(4, '2025-12-06', NULL, NULL, FALSE),
+(4, '2025-12-07', NULL, NULL, FALSE);
 
--- Plannings : Goku (Mar-Sam 10h-19h)
-INSERT INTO work_schedules (user_id, day_of_week, expected_arrival_time, expected_departure_time, is_working_day) VALUES
-(5, 'monday', NULL, NULL, FALSE),
-(5, 'tuesday', '10:00:00', '19:00:00', TRUE),
-(5, 'wednesday', '10:00:00', '19:00:00', TRUE),
-(5, 'thursday', '10:00:00', '19:00:00', TRUE),
-(5, 'friday', '10:00:00', '19:00:00', TRUE),
-(5, 'saturday', '10:00:00', '19:00:00', TRUE),
-(5, 'sunday', NULL, NULL, FALSE);
+-- Plannings : Goku (Mar-Sam 10h-19h) - ADAPTÉ AUX DATES SPÉCIFIQUES
+INSERT INTO work_schedules (user_id, schedule_date, expected_arrival_time, expected_departure_time, is_working_day) VALUES
+(5, '2025-12-02', '10:00:00', '19:00:00', TRUE),
+(5, '2025-12-03', '10:00:00', '19:15:00', TRUE),
+(5, '2025-12-04', '10:15:00', '19:30:00', TRUE),
+(5, '2025-12-05', '10:05:00', '19:00:00', TRUE),
+(5, '2025-12-06', '10:00:00', '19:20:00', TRUE),
+(5, '2025-12-07', NULL, NULL, FALSE); -- Dimanche
 
 -- Index pour optimisation
 CREATE INDEX idx_user_email ON users(email);
-CREATE INDEX idx_schedules_user_day ON work_schedules(user_id, day_of_week);
+CREATE INDEX idx_schedules_user_day ON work_schedules(user_id, schedule_date);
 
 -- ============================================
 -- INSERTION DES POINTAGES (CLOCKS)
@@ -169,9 +169,10 @@ SELECT
     c.departure_time,
     w.expected_arrival_time,
     w.expected_departure_time,
-    w.day_of_week, 
+    w.schedule_date, 
     DAYNAME(c.arrival_time) as jour_reel, 
-    YEARWEEK(c.arrival_time, 3) as semaine, 
+    YEARWEEK(c.arrival_time, 3) as semaine,
+    MONTH(c.arrival_time) as mois, 
     CASE 
         WHEN TIMESTAMPDIFF(MINUTE, w.expected_arrival_time, TIME(c.arrival_time)) > 10 THEN TRUE 
         ELSE FALSE 
@@ -182,5 +183,5 @@ JOIN users u ON c.user_id = u.user_id
 JOIN teams t ON t.team_id = u.team_id 
 -- Jointure sur le user ET le jour de la semaine
 JOIN work_schedules w ON w.user_id = c.user_id 
-    AND LOWER(DAYNAME(c.arrival_time)) = LOWER(w.day_of_week)
+    AND DATE(c.arrival_time) = w.schedule_date
 WHERE u.role = 'employee';
