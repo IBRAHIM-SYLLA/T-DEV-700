@@ -174,7 +174,7 @@ SELECT
     MONTH(c.arrival_time) as mois, 
     YEAR(c.arrival_time) as annee,
     CASE 
-        -- Le calcul du retard se fait maintenant sur la première arrivée de la journée
+          -- Le calcul du retard se fait maintenant sur la première arrivée de la journée
         WHEN TIMESTAMPDIFF(MINUTE, w.expected_arrival_time, TIME(MIN(c.arrival_time))) > 10 THEN TRUE 
         ELSE FALSE 
     END AS is_late_over_10min, 
