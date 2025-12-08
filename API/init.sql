@@ -175,7 +175,8 @@ SELECT
     CASE 
         WHEN TIMESTAMPDIFF(MINUTE, w.expected_arrival_time, TIME(c.arrival_time)) > 10 THEN TRUE 
         ELSE FALSE 
-    END AS is_late_over_10min 
+    END AS is_late_over_10min ,
+    TIMESTAMPDIFF(MINUTE, w.expected_arrival_time, TIME(c.arrival_time)) as retard_minut
 FROM clocks c 
 JOIN users u ON c.user_id = u.user_id 
 JOIN teams t ON t.team_id = u.team_id 
