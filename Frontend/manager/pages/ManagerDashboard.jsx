@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import NavBar from "../../src/components/NavBar";
+import Profil from "./Profil";
 import styles from "../../src/style/style.ts";
 
 export default function ManagerDashboard({ user, onLogout }) {
   const [showProfile, setShowProfile] = useState(false);
   const [activeTab, setActiveTab] = useState("Tableau de bord");
+  const [currentUser, setCurrentUser] = useState(user);
 
   const handleHomeClick = () => {
     setActiveTab("Tableau de bord");
@@ -12,22 +14,23 @@ export default function ManagerDashboard({ user, onLogout }) {
   };
 
   const handleShowProfile = () => {
+    console.log("Bouton Profil cliqué - showProfile:", showProfile);
     setShowProfile(true);
+    console.log("showProfile mis à jour à true");
+  };
+
+  const handleUpdateUser = (updatedUser) => {
+    setCurrentUser(updatedUser);
   };
 
   const renderTabContent = () => {
     if (showProfile) {
       return (
-        <div style={styles.dashboard.contentContainer}>
-          <h2>Profil Manager</h2>
-          <button 
-            style={styles.dashboard.navTab}
-            onClick={() => setShowProfile(false)}
-          >
-            ← Retour
-          </button>
-          {/* Le composant Profil sera ajouté ici */}
-        </div>
+        <Profil 
+          user={currentUser} 
+          onUpdateUser={handleUpdateUser}
+          onBack={() => setShowProfile(false)}
+        />
       );
     }
 
@@ -90,7 +93,7 @@ export default function ManagerDashboard({ user, onLogout }) {
     <div style={styles.dashboard.container}>
       {/* NavBar commune */}
       <NavBar
-        user={user}
+        user={currentUser}
         role="Manager"
         onLogout={onLogout}
         onShowProfile={handleShowProfile}
