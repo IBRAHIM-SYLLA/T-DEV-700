@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS clocks (
 CREATE TABLE IF NOT EXISTS work_schedules (
     schedule_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    /*day_of_week ENUM('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday') NOT NULL,*/
+    /*day_of_week ENUM('wednesday', 'thursday', 'friday', 'saturday', 'sunday') NOT NULL,*/
     schedule_date DATE , -- Nouvelle colonne pour la date complète
     expected_arrival_time TIME NULL,
     expected_departure_time TIME NULL,
