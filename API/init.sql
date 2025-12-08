@@ -112,7 +112,7 @@ CREATE INDEX idx_user_email ON users(email);
 CREATE INDEX idx_schedules_user_day ON work_schedules(user_id, day_of_week);
 
 -- ============================================
--- DONNÉES DE TEST : CLOCKS (Pointages)
+-- DONNÉES DE TEST : CLOCKS ( Pointages )
 -- Avec des dates anciennes pour tester les KPIs
 -- ============================================
 
