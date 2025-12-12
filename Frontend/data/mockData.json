@@ -1,4 +1,14 @@
 {
+  "attendance_rules": {
+    "tolerance_minutes": 5,
+    "early_departure_tolerance_minutes": 5,
+    "overtime_threshold_minutes": 15,
+    "break_duration_minutes": 120,
+    "break_start_time": "12:00:00",
+    "break_end_time": "14:00:00",
+    "auto_deduct_break": true
+  },
+
   "teams": [
     {
       "team_id": 1,
