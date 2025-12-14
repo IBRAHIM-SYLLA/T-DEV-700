@@ -1,5 +1,4 @@
-import { TeamModel } from "../models/team.model";
-import { UserModel } from "../models/user.model";
+import { TeamModel } from "../models/Team/team.model";
 import { UserHelper } from "./UserHelper";
 
 export class TeamHelper {
@@ -45,16 +44,6 @@ export class TeamHelper {
                 manager_id = ?,
             WHERE team_id = ${teamId}
         `;
-    }
-
-    async toTeamModelBySqlRow(row: any): Promise<TeamModel> {
-        const team = new TeamModel();
-        team.team_id = row.team_id;
-        team.name = row.name;
-        team.description = row.description;
-        team.members = await this.userHelper.getUserForTeam(team.team_id);
-        team.manager = team.members.find(m => m.role == this.ROLE_MANAGER) ?? new UserModel();
-        return team;
     }
 
     teamModelByReqBody(req: any): TeamModel {

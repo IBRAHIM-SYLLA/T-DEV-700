@@ -3,8 +3,8 @@ import dotenv from 'dotenv';
 import path from "path";
 import { DataSource } from "typeorm";
 import "reflect-metadata";
-import { UserModel } from "../models/user.model";
-import { TeamModel } from "../models/team.model";
+import { UserEntity } from "../models/User/UserEntity";
+import { TeamEntity } from "../models/Team/TeamEntity";
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
@@ -28,7 +28,7 @@ export const AppDataSource = new DataSource({
     database: process.env.DB_NAME,
     synchronize: true,   // ⚠️ en dev seulement !
     logging: false,
-    entities: [TeamModel, UserModel],
+    entities: [UserEntity, TeamEntity],
     migrations: ["src/migrations/**/*.ts"],
 });
 
