@@ -1,8 +1,8 @@
 import { PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany, Entity } from "typeorm";
-import { UserModel } from "./user.model";
+import { UserEntity } from "../User/UserEntity";
 
 @Entity("teams")
-export class TeamModel {
+export class TeamEntity {
     @PrimaryGeneratedColumn()
     team_id!: number;
 
@@ -13,11 +13,11 @@ export class TeamModel {
     description!: string;
 
     // Relation vers le manager (un user)
-    @ManyToOne(() => UserModel, { nullable: true })
+    @ManyToOne(() => UserEntity, { nullable: true })
     @JoinColumn({ name: "manager_id" })
-    manager!: UserModel | null;
+    manager!: UserEntity | null;
 
     // Relation inverse users → team
-    @OneToMany(() => UserModel, user => user.team)
-    members!: UserModel[];
+    @OneToMany(() => UserEntity, user => user.team)
+    members!: UserEntity[];
 }

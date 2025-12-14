@@ -1,13 +1,10 @@
 import express, { Request, Response, Router } from "express";
 import { UserService } from "../services/UserService";
-import { UserRepository } from "../repository/UserRepository";
-import bcrypt from 'bcrypt';
 
 const userRouter: Router = express.Router();
 
 // Création des instances
-const userRepository = new UserRepository();
-const userService = new UserService(userRepository);
+const userService = new UserService();
 
 /**
  * @route GET /users
@@ -40,9 +37,7 @@ userRouter.get("/:id", async (req: Request, res: Response) => {
 
 userRouter.post('/', async (req: Request, res: Response) => {
     try {
-        const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(req.body.password, saltRounds);
-        const user = await userService.createUser(req, hashedPassword);
+        const user = await userService.createUser(req);
         res.status(201).json(user);
     } catch (err) {
         console.error(err);
@@ -53,9 +48,8 @@ userRouter.post('/', async (req: Request, res: Response) => {
 userRouter.put('/:id', async (req: Request, res: Response) => {
     try {
         const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(req.body.password, saltRounds);
         let userId: number = Number.parseInt(req.params.id);
-        const user = await userService.updateUser(req, hashedPassword, userId);
+        const user = await userService.updateUser(userId, req);
         res.status(201).json(user);
     } catch (err) {
         console.error(err);

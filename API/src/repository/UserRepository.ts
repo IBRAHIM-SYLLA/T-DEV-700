@@ -1,6 +1,6 @@
 import { pool } from '../config/database';
 import { UserHelper } from "../helpers/UserHelper";
-import { UserModel } from "../models/user.model";
+import { UserModel } from "../models/User/user.model";
 
 
 export class UserRepository {
@@ -144,7 +144,7 @@ export class UserRepository {
             throw err;
         }
     }
-    
+
     /**
      * @name findByEmail()
      * @param email

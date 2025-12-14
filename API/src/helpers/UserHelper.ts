@@ -1,6 +1,7 @@
-import { UserModel } from "../models/user.model";
-import { UserRepository } from "../repository/UserRepository";
-
+import { UserModel } from "../models/User/user.model";
+import bcrypt from 'bcrypt';
+import { UserEntity } from "../models/User/UserEntity";
+import { UserLight } from "../models/User/user-light.model";
 export class UserHelper {
 
     getReqAllUsers(): string {
@@ -79,26 +80,40 @@ export class UserHelper {
         return user;
     }
 
-    userModelByReqBody(req: any, hashedPassword: string): UserModel {
+    async userModelByReqBody(req: any): Promise<UserModel> {
         const user = new UserModel();
         user.first_name = req.body.first_name;
         user.last_name = req.body.last_name;
         user.email = req.body.email;
         user.phone_number = req.body.phone_number;
-        user.password = hashedPassword;
-        // user.team_id = req.body.team_id;
+        user.team_id = req.body.team_id;
         user.role = req.body.role;
+        user.password = await this.hashString(req.body.password, 10);;
         return user;
     }
 
-    async getUserForTeam(team_id: number): Promise<UserModel[]> {
-        let repo: UserRepository = new UserRepository();
-        const users = await repo.getAllUsers();
-        let usersForTeams: UserModel[] = [];
-        // let result: UserModel[] = users.filter(u => u.team_id == team_id);
-        // if (result.length > 0) {
-        //     usersForTeams = result;
-        // }
-        return usersForTeams;
+    /**
+    * Convertit un UserEntity en UserLight (DTO public)
+    */
+    toUserLight(user: UserEntity): UserLight {
+        const light = new UserLight();
+
+        light.first_name = user.first_name;
+        light.last_name = user.last_name;
+        light.email = user.email;
+        light.phone_number = user.phone_number;
+
+        return light;
+    }
+
+    /**
+     * Convertit une liste de UserEntity en UserLight[]
+     */
+    toUserLightArray(users: UserEntity[]): UserLight[] {
+        return users.map(user => this.toUserLight(user));
+    }
+
+    async hashString(stringForHash: string, salt: number): Promise<string> {
+        return await bcrypt.hash(stringForHash, salt);
     }
 }

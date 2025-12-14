@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only --ignore-watch node_modules --ignore-watch dist src/server.ts",
     "test": "jest --coverage --runInBand --detectOpenHandles --forceExit"
   },
@@ -27,14 +27,12 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@types/lodash": "^4.17.20",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "http": "^0.0.1-security",
     "jsonwebtoken": "^9.0.2",
-    "lodash": "^4.17.21",
     "mariadb": "^3.4.5",
     "mysql2": "^3.15.3",
     "nodemon": "^3.1.10",

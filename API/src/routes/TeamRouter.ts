@@ -1,11 +1,9 @@
 import express, { Router, Request, Response } from "express";
-import { TeamRepository } from "../repository/TeamRepository";
 import { TeamService } from "../services/TeamService";
 
 const teamRouter: Router = express.Router();
 
-const teamRepository: TeamRepository = new TeamRepository();
-const teamService: TeamService = new TeamService(teamRepository);
+const teamService: TeamService = new TeamService();
 
 teamRouter.get("/", async (req: Request, res: Response) => {
     try {
