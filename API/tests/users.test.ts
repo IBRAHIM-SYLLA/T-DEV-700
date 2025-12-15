@@ -1,39 +1,39 @@
 jest.resetModules();
 
 jest.mock('../src/config/database', () => {
-  const mockQuery = jest.fn().mockResolvedValue([
-    { user_id: 1, first_name: 'John', last_name: 'Doe' } 
-  ]);
-
-  const mockConnection = {
-    query: mockQuery,
-    release: jest.fn(),
-  };
-
-  const mockPool = {
-    getConnection: jest.fn().mockResolvedValue(mockConnection),
-    query: mockQuery,
-  };
-
-  console.log('🧩 Mock MariaDB chargé dans Jest !');
-
   return {
     __esModule: true,
-    pool: mockPool,
+    AppDataSource: {
+      getRepository: jest.fn(),
+      initialize: jest.fn().mockResolvedValue(true)
+    },
     testConnection: jest.fn(),
   };
 });
 
 import request from 'supertest';
-const app = require('../src/server').default;
+import { AppDataSource } from '../src/config/database';
+import { UserEntity } from '../src/models/User/UserEntity';
+
+const mockUserRepo = {
+  find: jest.fn().mockResolvedValue([
+    { user_id: 1, first_name: 'John', last_name: 'Doe' }
+  ]),
+};
+
+(AppDataSource.getRepository as jest.Mock).mockImplementation((entity) => {
+  if (entity === UserEntity) return mockUserRepo;
+  return {};
+});
+
+const app = require('../src/index').default;
 
 describe('✅ USERS ROUTES', () => {
   it('GET /api/users → retourne la liste des utilisateurs', async () => {
     const res = await request(app).get('/api/users');
-    console.log('Réponse API:', res.body); 
 
     expect(res.statusCode).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body).toHaveLength(1);
     expect(res.body[0].first_name).toBe('John');
   });
 });
