@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import styles from "../../style/style.ts";
-import DataService from "../../services/DataService";
-import AttendanceService from "../../services/AttendanceService";
+import DataService from "../../../services/DataService";
+import AttendanceService from "../../../services/AttendanceService";
 
 // Fonctions utilitaires pour le formatage du temps
 const formatTime = (date) => {
