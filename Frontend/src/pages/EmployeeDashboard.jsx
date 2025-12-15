@@ -11,10 +11,13 @@ export default function EmployeeDashboard({ user, onLogout }) {
   const [currentUser, setCurrentUser] = useState(user);
   const [showProfile, setShowProfile] = useState(false);
   const [logoHovered, setLogoHovered] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Handle time updates from Pointage component
   const handleTimeUpdate = (data) => {
     setTimeData(data);
+    // Force refresh of MonResume and Historique when time is updated
+    setRefreshKey(prev => prev + 1);
   };
 
   // Handle user profile updates
@@ -38,10 +41,10 @@ export default function EmployeeDashboard({ user, onLogout }) {
         return <Pointage onTimeUpdate={handleTimeUpdate} />;
       
       case "Mon résumé":
-        return <MonResume timeData={timeData} />;
+        return <MonResume key={refreshKey} timeData={timeData} userId={currentUser.userId || currentUser.user_id} />;
       
       case "Historique":
-        return <Historique timeData={timeData} />;
+        return <Historique key={refreshKey} timeData={timeData} />;
       
       default:
         return null;
