@@ -188,6 +188,62 @@ class DataService {
     
     return allEmployees;
   }
+
+  /**
+   * ATTENDANCE RULES - Règles d'émargement
+   */
+  async getAttendanceRules() {
+    await this.delay();
+    return {
+      toleranceMinutes: 5,
+      lunchBreakDuration: 60,
+      maxDailyHours: 10,
+      minDailyHours: 7
+    };
+  }
+
+  /**
+   * CLOCK IN/OUT - Pointage
+   */
+  async clockIn(userId) {
+    await this.delay();
+    const now = new Date();
+    const timestamp = now.toISOString().replace('T', ' ').substring(0, 19);
+    
+    // Créer un nouveau pointage
+    const newClock = {
+      clock_id: mockData.clocks.length + 1,
+      user_id: userId,
+      arrival_time: timestamp,
+      departure_time: null
+    };
+    
+    // Ajouter au mock data (simulation)
+    mockData.clocks.push(newClock);
+    
+    return newClock;
+  }
+
+  async clockOut(userId) {
+    await this.delay();
+    const now = new Date();
+    const timestamp = now.toISOString().replace('T', ' ').substring(0, 19);
+    const today = now.toISOString().split('T')[0];
+    
+    // Trouver le pointage d'aujourd'hui
+    const todayClock = mockData.clocks.find(c => 
+      c.user_id === userId && 
+      c.arrival_time.startsWith(today) &&
+      !c.departure_time
+    );
+    
+    if (todayClock) {
+      todayClock.departure_time = timestamp;
+      return todayClock;
+    }
+    
+    return null;
+  }
 }
 
 // Export singleton instance
