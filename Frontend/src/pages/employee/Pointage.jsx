@@ -1,16 +1,24 @@
 import React, { useState, useEffect } from "react";
 import styles from "../../style/style.ts";
+import DataService from "../../services/DataService";
+import AttendanceService from "../../services/AttendanceService";
 
 // Fonctions utilitaires pour le formatage du temps
 const formatTime = (date) => {
   return date.toLocaleTimeString('fr-FR', { 
     hour: '2-digit', 
-    minute: '2-digit'
+    minute: '2-digit',
+    second: '2-digit'
   });
 };
 
 const formatDate = (date) => {
-  return date.toLocaleDateString('fr-FR');
+  return date.toLocaleDateString('fr-FR', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
 };
 
 const formatDuration = (hours) => {
@@ -19,244 +27,200 @@ const formatDuration = (hours) => {
   return `${h}h ${m.toString().padStart(2, '0')}m`;
 };
 
-// Fonction pour calculer le statut de ponctualité selon les règles métier
-const calculateAttendanceStatus = (clockInTime) => {
-  if (!clockInTime) return "Absent";
-  
-  const clockIn = new Date(clockInTime);
-  const hours = clockIn.getHours();
-  const minutes = clockIn.getMinutes();
-  const totalMinutes = hours * 60 + minutes;
-  
-  // Heures de travail : 9h00-18h00 avec pause 12h00-14h00
-  const workStart = 9 * 60; // 9h00 = 540 minutes
-  const toleranceEnd = 9 * 60 + 5; // 9h05 = 545 minutes
-  const lunchStart = 12 * 60; // 12h00 = 720 minutes
-  const lunchEnd = 14 * 60; // 14h00 = 840 minutes
-  const workEnd = 18 * 60; // 18h00 = 1080 minutes
-  
-  // Vérification des heures de travail valides
-  if (totalMinutes < workStart) {
-    // Pointage avant 9h00 - Arrivée anticipée
-    return "À l'heure";
-  } else if (totalMinutes <= toleranceEnd) {
-    // Entre 9h00 et 9h05 - Dans la tolérance
-    return "À l'heure";
-  } else if (totalMinutes < lunchStart) {
-    // Entre 9h05 et 12h00 - Retard matinal
-    const lateMinutes = totalMinutes - toleranceEnd;
-    return `Retard (${lateMinutes}min)`;
-  } else if (totalMinutes >= lunchStart && totalMinutes < lunchEnd) {
-    // Entre 12h00 et 14h00 - Pause déjeuner
-    return "Pause déjeuner";
-  } else if (totalMinutes >= lunchEnd && totalMinutes <= workEnd) {
-    // Entre 14h00 et 18h00 - Reprise après pause
-    return "Reprise après pause";
-  } else {
-    // Après 18h00 - Hors horaires de travail
-    return "Hors horaires";
-  }
-};
-
 export default function Pointage({ onTimeUpdate }) {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [status, setStatus] = useState("Absent");
-  const [currentSessionStart, setCurrentSessionStart] = useState(null);
-  const [dailyHours, setDailyHours] = useState(0);
-  const [isWorking, setIsWorking] = useState(false);
-  const [todaySessions, setTodaySessions] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [schedule, setSchedule] = useState(null);
+  const [todayClock, setTodayClock] = useState(null);
+  const [canClockIn, setCanClockIn] = useState(false);
+  const [canClockOut, setCanClockOut] = useState(false);
+  const [arrivalStatus, setArrivalStatus] = useState(null);
+  const [workedTime, setWorkedTime] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [attendanceRules, setAttendanceRules] = useState(null);
 
-  // Load data from localStorage on component mount
+  // Récupérer l'utilisateur connecté depuis localStorage
+  const storedUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+  const CURRENT_USER_ID = storedUser.userId || storedUser.user_id || 3;
+
+  // Charger les données initiales
   useEffect(() => {
-    const today = new Date().toDateString();
-    const savedData = localStorage.getItem(`timeTrack_${today}`);
-    
-    if (savedData) {
-      const data = JSON.parse(savedData);
-      setStatus(data.status || "Absent");
-      setIsWorking(data.isWorking || false);
-      setDailyHours(data.totalHours || 0);
-      setTodaySessions(data.sessions || []);
-      
-      // Si en cours de travail, récupérer la session actuelle
-      if (data.isWorking && data.currentSessionStart) {
-        setCurrentSessionStart(new Date(data.currentSessionStart));
-      }
-    }
+    loadUserData();
   }, []);
 
-  // Update time every second
+  // Mettre à jour l'horloge chaque seconde
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
       
-      // If currently working, update daily hours
-      if (isWorking && currentSessionStart) {
-        const now = new Date();
-        const currentSessionTime = (now - currentSessionStart) / (1000 * 60 * 60);
-        const completedSessionsTime = todaySessions.reduce((total, session) => total + session.duration, 0);
-        const totalDailyHours = completedSessionsTime + currentSessionTime;
-        
-        setDailyHours(totalDailyHours);
-        
-        // Update localStorage in real-time during work
-        const today = new Date().toDateString();
-        const timeData = {
-          status: status,
-          isWorking: true,
-          currentSessionStart: currentSessionStart.toISOString(),
-          sessions: todaySessions,
-          totalHours: totalDailyHours,
-          date: today
-        };
-        localStorage.setItem(`timeTrack_${today}`, JSON.stringify(timeData));
-        
-        // Debug: Afficher les données sauvegardées
-        console.log("Pointage - Données sauvegardées:", timeData);
-        
-        // Notify parent component of time update
-        if (onTimeUpdate) {
-          onTimeUpdate({
-            status,
-            sessions: todaySessions,
-            currentSessionStart,
-            dailyHours: totalDailyHours,
-            isWorking
-          });
-        }
+      // Mettre à jour le temps travaillé si en cours
+      if (todayClock && !todayClock.departure_time) {
+        updateWorkedTime();
       }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isWorking, currentSessionStart, status, onTimeUpdate, todaySessions]);
+  }, [todayClock]);
 
-  const handleClockIn = () => {
-    const now = new Date();
-    setCurrentSessionStart(now);
-    setStatus("Présent");
-    setIsWorking(true);
-    
-    // Calculer le statut de ponctualité
-    const attendanceStatus = calculateAttendanceStatus(now.toISOString());
-    
-    // Save to localStorage
-    const today = new Date().toDateString();
-    const timeData = {
-      status: "Présent",
-      isWorking: true,
-      currentSessionStart: now.toISOString(),
-      sessions: todaySessions,
-      totalHours: dailyHours,
-      date: today,
-      attendanceStatus: attendanceStatus
-    };
-    localStorage.setItem(`timeTrack_${today}`, JSON.stringify(timeData));
-    
-    const sessionNumber = todaySessions.length + 1;
-    
-    // Message informatif selon les règles métier
-    let message = `Session ${sessionNumber} - Arrivée pointée à ${formatTime(now)}\nStatut: ${attendanceStatus}`;
-    
-    if (attendanceStatus === "Hors horaires") {
-      message += "\n⚠️ Attention: Pointage en dehors des heures de travail (9h-18h)";
-    } else if (attendanceStatus === "Pause déjeuner") {
-      message += "\n🍽️ Pointage pendant la pause déjeuner (12h-14h)";
-    } else if (attendanceStatus.includes("Retard")) {
-      message += "\n⏰ Rappel: Les heures de travail commencent à 9h00 (tolérance jusqu'à 9h05)";
-    }
-    
-    alert(message);
-  };
+  const loadUserData = async () => {
+    try {
+      setLoading(true);
+      
+      // Récupérer l'utilisateur
+      const user = await DataService.getUserById(CURRENT_USER_ID);
+      setCurrentUser(user);
 
-  const handleClockOut = () => {
-    const now = new Date();
-    setStatus("Absent");
-    setIsWorking(false);
-    
-    if (currentSessionStart) {
-      // Calculer la durée de la session actuelle
-      const sessionDuration = (now - currentSessionStart) / (1000 * 60 * 60);
-      
-      // Calculer le statut de ponctualité pour cette session
-      const attendanceStatus = calculateAttendanceStatus(currentSessionStart.toISOString());
-      
-      // Créer la nouvelle session avec le statut de ponctualité
-      const newSession = {
-        sessionNumber: todaySessions.length + 1,
-        clockIn: formatTime(currentSessionStart),
-        clockOut: formatTime(now),
-        duration: sessionDuration,
-        startTime: currentSessionStart.toISOString(),
-        endTime: now.toISOString(),
-        attendanceStatus: attendanceStatus
-      };
-      
-      // Ajouter à la liste des sessions
-      const updatedSessions = [...todaySessions, newSession];
-      setTodaySessions(updatedSessions);
-      
-      // Calculer le total des heures
-      const totalHours = updatedSessions.reduce((total, session) => total + session.duration, 0);
-      setDailyHours(totalHours);
-      setCurrentSessionStart(null);
-      
-      // Save to localStorage
-      const today = new Date().toDateString();
-      const timeData = {
-        status: "Absent",
-        isWorking: false,
-        sessions: updatedSessions,
-        totalHours: totalHours,
-        date: today
-      };
-      localStorage.setItem(`timeTrack_${today}`, JSON.stringify(timeData));
-      
-      // Sauvegarder dans l'historique seulement à la fin de la journée ou mise à jour
-      const historyKey = 'timeTrack_history';
-      const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
-      
-      // Calculer les infos pour l'historique
-      const firstSession = updatedSessions[0];
-      const lastSession = updatedSessions[updatedSessions.length - 1];
-      
-      // Calculer le statut global de la journée
-      const hasLateSession = updatedSessions.some(session => 
-        session.attendanceStatus && session.attendanceStatus.includes("Retard")
+      // Récupérer les règles d'émargement
+      const rules = await DataService.getAttendanceRules();
+      setAttendanceRules(rules);
+
+      // Récupérer le planning du jour
+      const today = new Date();
+      const dayOfWeek = AttendanceService.getDayOfWeek(
+        today.toISOString().split('T')[0]
       );
-      const dailyAttendanceStatus = hasLateSession ? "Retard" : "À l'heure";
+      const daySchedule = await DataService.getScheduleByUserIdAndDay(
+        CURRENT_USER_ID,
+        dayOfWeek
+      );
+      setSchedule(daySchedule);
+
+      // Récupérer tous les pointages
+      const allClocks = await DataService.getAllClocks();
       
-      const todayRecord = {
-        date: now.toLocaleDateString('fr-FR'),
-        clockIn: firstSession.clockIn,
-        clockOut: lastSession.clockOut,
-        duration: totalHours,
-        overtime: Math.max(0, totalHours - 8),
-        status: totalHours >= 8 ? "Complet" : "Incomplet",
-        sessions: updatedSessions.length,
-        attendanceStatus: dailyAttendanceStatus,
-        sessionsDetail: updatedSessions
-      };
-      
-      // Remplacer ou ajouter l'enregistrement d'aujourd'hui
-      const filteredHistory = history.filter(record => record.date !== todayRecord.date);
-      filteredHistory.unshift(todayRecord);
-      localStorage.setItem(historyKey, JSON.stringify(filteredHistory));
-      
-      // Notify parent with final time data
-      if (onTimeUpdate) {
-        onTimeUpdate({
-          status: "Absent",
-          sessions: updatedSessions,
-          dailyHours: totalHours,
-          isWorking: false
-        });
+      // Vérifier les possibilités de pointage
+      const clockStatus = AttendanceService.canClockNow(CURRENT_USER_ID, allClocks);
+      setCanClockIn(clockStatus.canClockIn);
+      setCanClockOut(clockStatus.canClockOut);
+      setTodayClock(clockStatus.currentClock);
+
+      // Calculer le statut si déjà pointé
+      if (clockStatus.currentClock && daySchedule) {
+        const status = AttendanceService.calculateArrivalStatus(
+          daySchedule.expected_arrival_time,
+          clockStatus.currentClock.arrival_time
+        );
+        setArrivalStatus(status);
+
+        if (clockStatus.currentClock.departure_time) {
+          updateWorkedTime(clockStatus.currentClock);
+        }
       }
-      
-      alert(`Session ${newSession.sessionNumber} terminée - Départ pointé à ${formatTime(now)}\nTemps de session: ${formatDuration(sessionDuration)}\nTotal journée: ${formatDuration(totalHours)}`);
+
+      setLoading(false);
+    } catch (error) {
+      console.error("Erreur chargement données:", error);
+      setLoading(false);
     }
   };
 
+  const updateWorkedTime = (clock = todayClock) => {
+    if (!clock) return;
 
+    const now = new Date();
+    const timestamp = now.toISOString().replace('T', ' ').substring(0, 19);
+    
+    const worked = AttendanceService.calculateWorkedHours(
+      clock.arrival_time,
+      clock.departure_time || timestamp
+    );
+    setWorkedTime(worked);
+  };
+
+  const handleClockIn = async () => {
+    try {
+      setLoading(true);
+      const newClock = await DataService.clockIn(CURRENT_USER_ID);
+      setTodayClock(newClock);
+      setCanClockIn(false);
+      setCanClockOut(true);
+
+      // Calculer le statut d'arrivée
+      if (schedule) {
+        const status = AttendanceService.calculateArrivalStatus(
+          schedule.expected_arrival_time,
+          newClock.arrival_time
+        );
+        setArrivalStatus(status);
+
+        // Afficher un message selon le statut
+        if (status.status === 'late') {
+          alert(`⚠️ Retard de ${status.lateMinutes} minutes\nHeure prévue: ${schedule.expected_arrival_time}\nHeure d'arrivée: ${newClock.arrival_time.split(' ')[1]}`);
+        } else {
+          alert(`✅ À l'heure!\nHeure d'arrivée: ${newClock.arrival_time.split(' ')[1]}`);
+        }
+      }
+
+      // Notifier le parent pour rafraîchir les autres onglets
+      if (onTimeUpdate) {
+        onTimeUpdate({ clockIn: newClock, type: 'arrival' });
+      }
+
+      setLoading(false);
+    } catch (error) {
+      console.error("Erreur pointage entrée:", error);
+      setLoading(false);
+    }
+  };
+
+  const handleClockOut = async () => {
+    try {
+      setLoading(true);
+      const updatedClock = await DataService.clockOut(CURRENT_USER_ID);
+      setTodayClock(updatedClock);
+      setCanClockIn(true);
+      setCanClockOut(false);
+      
+      // Calculer le temps total travaillé
+      updateWorkedTime(updatedClock);
+
+      if (updatedClock) {
+        const worked = AttendanceService.calculateWorkedHours(
+          updatedClock.arrival_time,
+          updatedClock.departure_time
+        );
+        alert(`✅ Départ enregistré!\nTemps travaillé: ${worked.hours}h ${worked.minutes}min`);
+      }
+
+      // Notifier le parent pour rafraîchir les autres onglets
+      if (onTimeUpdate) {
+        onTimeUpdate({ clockOut: updatedClock, type: 'departure' });
+      }
+
+      setLoading(false);
+    } catch (error) {
+      console.error("Erreur pointage sortie:", error);
+      setLoading(false);
+    }
+  };
+
+  const getStatusDisplay = () => {
+    if (!todayClock) {
+      return "Absent";
+    }
+    
+    if (!todayClock.departure_time) {
+      // En cours de travail
+      if (arrivalStatus && arrivalStatus.status === 'late') {
+        if (arrivalStatus.duringBreak) {
+          return `Retard (pointé pendant pause déj à ${todayClock.arrival_time.split(' ')[1]})`;
+        }
+        return `Retard (${arrivalStatus.lateMinutes}min)`;
+      }
+      return "Présent";
+    }
+    
+    return "Absent";
+  };
+
+  if (loading) {
+    return (
+      <div style={styles.container}>
+        <h1 style={styles.heading}>Pointage</h1>
+        <p>Chargement...</p>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.pointage.container}>
@@ -270,51 +234,69 @@ export default function Pointage({ onTimeUpdate }) {
           <div style={styles.pointage.statusLabel}>Statut actuel</div>
           <div style={styles.mergeStyles(
             styles.pointage.statusValue,
-            status === "Absent" ? styles.pointage.statusAbsent : styles.pointage.statusPresent
+            getStatusDisplay() === "Absent" ? styles.pointage.statusAbsent : 
+            getStatusDisplay().includes("Retard") ? styles.pointage.statusDelay :
+            styles.pointage.statusPresent
           )}>
-            {status === "Absent" ? "❌ Absent" : "✅ Présent"}
+            {getStatusDisplay() === "Absent" && "❌ Absent"}
+            {getStatusDisplay() === "Présent" && "✅ Présent"}
+            {getStatusDisplay().includes("Retard") && `⚠️ ${getStatusDisplay()}`}
           </div>
         </div>
 
-        {/* Daily Hours Display */}
-        {(todaySessions.length > 0 || isWorking) && (
+        {/* Temps travaillé */}
+        {workedTime && todayClock && !todayClock.departure_time && (
           <div style={styles.pointage.dailyHoursDisplay}>
-            <div style={styles.pointage.hoursLabel}>Temps travaillé aujourd'hui</div>
-            <div style={styles.pointage.hoursValue}>{formatDuration(dailyHours)}</div>
-            
+            <div style={styles.pointage.hoursLabel}>Temps travaillé aujourd&apos;hui</div>
+            <div style={styles.pointage.hoursValue}>
+              {workedTime.hours}h {workedTime.minutes.toString().padStart(2, '0')}min
+            </div>
             <div style={styles.pointage.timeDetails}>
-              <span>Sessions: {todaySessions.length + (isWorking ? 1 : 0)}</span>
-              {isWorking && <span>⏱️ En cours</span>}
+              <span>⏰ En cours depuis {todayClock.arrival_time.split(' ')[1]}</span>
+              {workedTime.breakMinutes > 0 && (
+                <span>🍽️ Pause déduite: {Math.floor(workedTime.breakMinutes / 60)}h{workedTime.breakMinutes % 60}min</span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Info Planning */}
+        {schedule && schedule.is_working_day && (
+          <div style={{...styles.card, margin: '1rem 0', padding: '1rem', backgroundColor: '#f0f9ff', borderRadius: '8px'}}>
+            <div style={{fontSize: '0.9rem', opacity: 0.8}}>
+              <div>📋 Horaires: {schedule.expected_arrival_time.substring(0,5)} - {schedule.expected_departure_time.substring(0,5)}</div>
+              <div>🍽️ Pause: 12:00-14:00 (auto)</div>
+              <div>⏱️ Tolérance: {attendanceRules?.tolerance_minutes || 5} min</div>
             </div>
           </div>
         )}
 
         <div style={styles.pointage.actionButtons}>
           <button 
-            style={status === "Présent" ? 
+            style={!canClockIn ? 
               styles.mergeStyles(styles.pointage.btnBase, styles.pointage.btnDisabled) :
               styles.mergeStyles(styles.pointage.btnBase, styles.pointage.btnArrivee)
             }
             onClick={handleClockIn}
-            disabled={status === "Présent"}
+            disabled={!canClockIn || loading}
           >
-            📍 Pointer l'arrivée
+            {loading ? '⏳ Chargement...' : '📍 Pointer l\'arrivée'}
           </button>
           
           <button 
-            style={status === "Absent" ? 
+            style={!canClockOut ? 
               styles.mergeStyles(styles.pointage.btnBase, styles.pointage.btnDisabled) :
               styles.mergeStyles(styles.pointage.btnBase, styles.pointage.btnDepart)
             }
             onClick={handleClockOut}
-            disabled={status === "Absent"}
+            disabled={!canClockOut || loading}
           >
-            📍 Pointer le départ
+            {loading ? '⏳ Chargement...' : '📍 Pointer le départ'}
           </button>
         </div>
 
         <div style={styles.pointage.reminder}>
-          <strong>Rappel:</strong> N'oubliez pas de pointer votre départ en fin de journée
+          <strong>💡 Rappel:</strong> Horaires 9h-12h et 14h-18h (pause déj 12h-14h auto). Tolérance {attendanceRules?.tolerance_minutes || 5}min.
         </div>
       </div>
     </div>

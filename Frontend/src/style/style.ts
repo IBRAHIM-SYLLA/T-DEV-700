@@ -305,7 +305,9 @@ export const dashboardStyles = {
     fontSize: '14px',
     fontWeight: 500,
     color: '#64748b',
-    borderBottom: '3px solid transparent',
+    borderBottomWidth: '3px',
+    borderBottomStyle: 'solid',
+    borderBottomColor: 'transparent',
     transition: 'all 0.2s',
     display: 'flex',
     alignItems: 'center',
@@ -408,6 +410,11 @@ export const pointageStyles = {
   statusPresent: {
     color: '#059669',
     background: '#ecfdf5'
+  } as CSSProperties,
+
+  statusDelay: {
+    color: '#ea580c',
+    background: '#fff7ed'
   } as CSSProperties,
 
   dailyHoursDisplay: {
