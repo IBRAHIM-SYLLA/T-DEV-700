@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from "react";
 import styles from "../../style/style.ts";
+import DataService from "../../services/DataService";
+import AttendanceService from "../../services/AttendanceService";
 
 export default function Historique({ timeData }) {
   const [selectedMonth, setSelectedMonth] = useState("Ce mois");
   const [historyRecords, setHistoryRecords] = useState([]);
   const [filteredRecords, setFilteredRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [monthlyStats, setMonthlyStats] = useState({
     daysWorked: 0,
@@ -13,79 +16,77 @@ export default function Historique({ timeData }) {
     delays: 0
   });
 
-  // Load history from localStorage on component mount
+  // Récupérer l'utilisateur connecté depuis localStorage
+  const storedUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+  const CURRENT_USER_ID = storedUser.userId || storedUser.user_id || 3;
+
+  // Charger l'historique réel depuis les données mockées
   useEffect(() => {
-    const history = JSON.parse(localStorage.getItem('timeTrack_history') || '[]');
-    
-    // Add some default demo data if no history exists
-    if (history.length === 0) {
-      const today = new Date();
-      const currentMonth = (today.getMonth() + 1).toString().padStart(2, '0');
-      const prevMonth = today.getMonth() === 0 ? '12' : (today.getMonth()).toString().padStart(2, '0');
-      const currentYear = today.getFullYear();
-      const prevYear = today.getMonth() === 0 ? currentYear - 1 : currentYear;
+    loadAttendanceHistory();
+  }, [selectedMonth]);
+
+  const loadAttendanceHistory = async () => {
+    try {
+      setLoading(true);
       
-      const demoData = [
-        // Ce mois
-        {
-          date: `22/${currentMonth}/${currentYear}`,
-          clockIn: "08:15",
-          clockOut: "17:30",
-          duration: 8.75,
-          overtime: 0.75,
-          status: "Complet"
-        },
-        {
-          date: `21/${currentMonth}/${currentYear}`,
-          clockIn: "08:45",
-          clockOut: "17:30",
-          duration: 8.25,
-          overtime: 0.25,
-          status: "Retard"
-        },
-        {
-          date: `20/${currentMonth}/${currentYear}`,
-          clockIn: "08:00",
-          clockOut: "17:00",
-          duration: 8.0,
-          overtime: 0,
-          status: "Complet"
-        },
-        // Mois précédent
-        {
-          date: `28/${prevMonth}/${prevYear}`,
-          clockIn: "08:30",
-          clockOut: "17:15",
-          duration: 8.25,
-          overtime: 0.25,
-          status: "Complet"
-        },
-        {
-          date: `27/${prevMonth}/${prevYear}`,
-          clockIn: "09:00",
-          clockOut: "18:00",
-          duration: 8.5,
-          overtime: 0.5,
-          status: "Retard"
-        },
-        // Il y a 2 mois (pour test 3 mois)
-        {
-          date: `15/${(today.getMonth() - 1).toString().padStart(2, '0')}/${currentYear}`,
-          clockIn: "08:00",
-          clockOut: "16:30",
-          duration: 7.5,
-          overtime: 0,
-          status: "Incomplet"
-        }
-      ];
-      localStorage.setItem('timeTrack_history', JSON.stringify(demoData));
-      setHistoryRecords(demoData);
-      setFilteredRecords(filterRecords(demoData, selectedMonth));
-    } else {
+      // Récupérer les données
+      const clocks = await DataService.getClocksByUserId(CURRENT_USER_ID);
+      const schedules = await DataService.getSchedulesByUserId(CURRENT_USER_ID);
+      
+      // Convertir les pointages en historique avec calculs
+      const history = clocks
+        .filter(clock => clock.departure_time) // Seulement les journées complètes
+        .map(clock => {
+          const clockDate = clock.arrival_time.split(' ')[0];
+          const dayOfWeek = AttendanceService.getDayOfWeek(clockDate);
+          const schedule = schedules.find(s => s.day_of_week === dayOfWeek);
+          
+          // Obtenir le statut détaillé
+          const detailedStatus = AttendanceService.getClockDetailedStatus(clock, schedule);
+          
+          // Formater la date
+          const [year, month, day] = clockDate.split('-');
+          const formattedDate = `${day}/${month}/${year}`;
+          
+          // Déterminer le statut avec vérification de la pause déjeuner
+          let status = 'À l\'heure';
+          let lateMinutes = 0;
+          
+          if (detailedStatus.arrivalStatus) {
+            if (detailedStatus.arrivalStatus.status === 'late') {
+              status = 'Retard';
+              lateMinutes = detailedStatus.arrivalStatus.lateMinutes;
+              
+              // Si pointé pendant la pause, ajouter un indicateur
+              if (detailedStatus.arrivalStatus.duringBreak) {
+                status = 'Retard (pause déj)';
+              }
+            }
+          }
+          
+          return {
+            date: formattedDate,
+            clockIn: clock.arrival_time.split(' ')[1],
+            clockOut: clock.departure_time.split(' ')[1],
+            duration: detailedStatus.workedHours?.totalMinutes / 60 || 0,
+            overtime: 0, // Calculer si nécessaire
+            status: status,
+            lateMinutes: lateMinutes,
+            earlyMinutes: detailedStatus.arrivalStatus?.earlyMinutes || 0,
+            expectedArrival: detailedStatus.expectedArrival,
+            rawDate: clockDate
+          };
+        })
+        .sort((a, b) => new Date(b.rawDate) - new Date(a.rawDate)); // Trier par date décroissante
+      
       setHistoryRecords(history);
       setFilteredRecords(filterRecords(history, selectedMonth));
+      setLoading(false);
+    } catch (error) {
+      console.error("Erreur chargement historique:", error);
+      setLoading(false);
     }
-  }, []);
+  };
 
   // Update statistics when filtered records change
   useEffect(() => {
@@ -111,16 +112,6 @@ export default function Historique({ timeData }) {
       });
     }
   }, [filteredRecords]);
-
-  // Add today's record if timeData is provided and complete
-  useEffect(() => {
-    // Reload history from localStorage when timeData changes (after clock out)
-    if (timeData && timeData.clockOutTime) {
-      const history = JSON.parse(localStorage.getItem('timeTrack_history') || '[]');
-      setHistoryRecords(history);
-      setFilteredRecords(filterRecords(history, selectedMonth));
-    }
-  }, [timeData, selectedMonth]);
 
   const formatDuration = (hours) => {
     const h = Math.floor(hours);
@@ -182,51 +173,57 @@ export default function Historique({ timeData }) {
           </select>
         </div>
         
-        <div style={styles.history.tableContainer}>
-          <table style={styles.history.table}>
-            <thead>
-              <tr>
-                <th style={styles.history.th}>DATE</th>
-                <th style={styles.history.th}>ARRIVÉE</th>
-                <th style={styles.history.th}>DÉPART</th>
-                <th style={styles.history.th}>DURÉE</th>
-                <th style={styles.history.th}>H. SUP.</th>
-                <th style={styles.history.th}>STATUT</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRecords.length > 0 ? (
-                filteredRecords.map((record, index) => (
-                  <tr key={index}>
-                    <td style={styles.history.td}>{record.date}</td>
-                    <td style={styles.history.td}>{record.clockIn}</td>
-                    <td style={styles.history.td}>{record.clockOut}</td>
-                    <td style={styles.history.td}>{formatDuration(record.duration)}</td>
-                    <td style={styles.mergeStyles(styles.history.td, styles.history.overtimeCell)}>
-                      {record.overtime > 0 ? formatDuration(record.overtime) : '-'}
-                    </td>
-                    <td style={styles.history.td}>
-                      <span style={styles.mergeStyles(
-                        styles.history.statusBadge,
-                        record.status.toLowerCase() === 'complet' ? styles.history.statusBadgeComplete :
-                        record.status.toLowerCase() === 'retard' ? styles.history.statusBadgeDelay :
-                        styles.history.statusBadgeIncomplete
-                      )}>
-                        {record.status}
-                      </span>
+        {loading ? (
+          <p>Chargement...</p>
+        ) : (
+          <div style={styles.history.tableContainer}>
+            <table style={styles.history.table}>
+              <thead>
+                <tr>
+                  <th style={styles.history.th}>DATE</th>
+                  <th style={styles.history.th}>ARRIVÉE</th>
+                  <th style={styles.history.th}>DÉPART</th>
+                  <th style={styles.history.th}>DURÉE</th>
+                  <th style={styles.history.th}>STATUT</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRecords.length > 0 ? (
+                  filteredRecords.map((record, index) => (
+                    <tr key={index}>
+                      <td style={styles.history.td}>{record.date}</td>
+                      <td style={styles.history.td}>
+                        {record.clockIn}
+                        {record.expectedArrival && (
+                          <span style={{opacity: 0.6, fontSize: '0.85em'}}> (prévu: {record.expectedArrival})</span>
+                        )}
+                      </td>
+                      <td style={styles.history.td}>{record.clockOut}</td>
+                      <td style={styles.history.td}>{formatDuration(record.duration)}</td>
+                      <td style={styles.history.td}>
+                        <span style={styles.mergeStyles(
+                          styles.history.statusBadge,
+                          record.status.includes('À l\'heure') ? styles.history.statusBadgeComplete :
+                          styles.history.statusBadgeDelay
+                        )}>
+                          {record.status.includes('Retard') ? 
+                            `⚠️ ${record.status} (+${record.lateMinutes}min)` : 
+                            '✅ À l\'heure'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} style={{...styles.history.td, textAlign: 'center', padding: '2rem'}}>
+                      Aucun enregistrement pour cette période
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="6" style={{...styles.history.td, textAlign: 'center', padding: '2rem', color: '#6b7280'}}>
-                    Aucun enregistrement trouvé pour la période sélectionnée
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
         
         <div style={styles.history.monthlySummary}>
           <h3 style={styles.history.summaryTitle}>Résumé mensuel</h3>
