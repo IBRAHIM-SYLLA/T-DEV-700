@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import styles from "../../style/style.ts";
+import DataService from "../../services/DataService";
+import AttendanceService from "../../services/AttendanceService";
 
-export default function MonResume({ timeData }) {
+export default function MonResume({ userId = 3 }) {
   const [weeklyData, setWeeklyData] = useState({
     totalHours: 0,
     overtimeHours: 0,
@@ -9,147 +11,123 @@ export default function MonResume({ timeData }) {
     totalDays: 5
   });
 
-  const [weekDays, setWeekDays] = useState([
-    { 
-      day: "Lundi", 
-      clockIn: "--:--", 
-      clockOut: "--:--", 
-      worked: 0, 
-      overtime: 0, 
-      present: false 
-    },
-    { 
-      day: "Mardi", 
-      clockIn: "--:--", 
-      clockOut: "--:--", 
-      worked: 0, 
-      overtime: 0, 
-      present: false 
-    },
-    { 
-      day: "Mercredi", 
-      clockIn: "--:--", 
-      clockOut: "--:--", 
-      worked: 0, 
-      overtime: 0, 
-      present: false 
-    },
-    { 
-      day: "Jeudi", 
-      clockIn: "--:--", 
-      clockOut: "--:--", 
-      worked: 0, 
-      overtime: 0, 
-      present: false 
-    },
-    { 
-      day: "Vendredi", 
-      clockIn: "--:--", 
-      clockOut: "--:--", 
-      worked: 0, 
-      overtime: 0, 
-      present: false 
-    }
-  ]);
+  const [weekDays, setWeekDays] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Fonction pour mettre à jour les données de la semaine
-  const updateWeekDays = () => {
-    const today = new Date();
-    const todayString = today.toDateString();
-    const dayOfWeek = today.getDay(); // 0 = Dimanche, 1 = Lundi, etc.
-    const dayNames = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+  // Calculer la semaine courante (Lundi - Vendredi)
+  const getCurrentWeekDates = () => {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0 = Dimanche, 1 = Lundi, ...
+    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Lundi de cette semaine
     
-    // Récupérer les données sauvegardées pour aujourd'hui
-    const savedData = localStorage.getItem(`timeTrack_${todayString}`);
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diff);
+    monday.setHours(0, 0, 0, 0);
     
-    // Debug: Afficher les données récupérées
-    console.log("MonResume - Données localStorage:", savedData);
+    const dates = [];
+    for (let i = 0; i < 5; i++) {
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + i);
+      dates.push(date);
+    }
     
-    if (savedData) {
-      const parsedData = JSON.parse(savedData);
-      const todayName = dayNames[dayOfWeek];
+    return dates;
+  };
+
+  // Charger les données de la semaine
+  const loadWeekData = async () => {
+    try {
+      setLoading(true);
+      const weekDates = getCurrentWeekDates();
+      const dayNames = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"];
       
-      console.log("MonResume - Jour actuel:", todayName);
-      console.log("MonResume - Sessions:", parsedData.sessions);
-      console.log("MonResume - Status:", parsedData.status);
-      console.log("MonResume - isWorking:", parsedData.isWorking);
+      // Récupérer tous les pointages de l'utilisateur
+      const allClocks = await DataService.getClocksByUserId(userId);
+      const userSchedule = await DataService.getSchedulesByUserId(userId);
       
-      setWeekDays(prevDays => {
-        const updatedDays = prevDays.map(day => {
-          if (day.day === todayName) {
-            // Récupérer les heures d'arrivée et départ depuis les sessions
-            const sessions = parsedData.sessions || [];
-            let clockIn = "--:--";
-            let clockOut = "--:--";
-            
-            if (sessions.length > 0) {
-              // Première session pour l'heure d'arrivée
-              const firstSession = sessions[0];
-              // clockIn est déjà formaté comme "14:30", pas besoin de conversion
-              clockIn = firstSession.clockIn || "--:--";
-              
-              // Dernière session pour l'heure de départ  
-              const lastSession = sessions[sessions.length - 1];
-              if (lastSession.clockOut) {
-                // clockOut est déjà formaté comme "17:30"
-                clockOut = lastSession.clockOut;
-              } else if (parsedData.isWorking === false) {
-                clockOut = "--:--"; // Pas encore pointé le départ
-              }
-            } else if (parsedData.currentSessionStart) {
-              // Session en cours sans session complète
-              clockIn = new Date(parsedData.currentSessionStart).toLocaleTimeString('fr-FR', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              });
-            }
-            
-            const worked = parsedData.totalHours || 0;
-            const overtime = Math.max(0, worked - 8);
-            const present = parsedData.status === "Présent" || parsedData.isWorking || sessions.length > 0;
-            
-            return {
-              ...day,
-              clockIn,
-              clockOut,
-              worked,
-              overtime,
-              present
-            };
-          }
-          return day;
-        });
+      // Mapper chaque jour de la semaine
+      const weekData = weekDates.map((date, index) => {
+        const dateStr = date.toISOString().split('T')[0];
         
-        // Calculer les totaux
-        const totalWorked = updatedDays.reduce((sum, day) => sum + (day.present ? day.worked : 0), 0);
-        const totalOvertime = updatedDays.reduce((sum, day) => sum + day.overtime, 0);
-        const daysPresent = updatedDays.filter(day => day.present).length;
+        // Trouver les pointages pour ce jour
+        const dayClocks = allClocks.filter(clock => 
+          clock.arrival_time.startsWith(dateStr)
+        );
         
-        setWeeklyData({
-          totalHours: totalWorked,
-          overtimeHours: totalOvertime,
-          daysWorked: daysPresent,
-          totalDays: 5
-        });
+        if (dayClocks.length === 0) {
+          return {
+            day: dayNames[index],
+            date: dateStr,
+            clockIn: "--:--",
+            clockOut: "--:--",
+            worked: 0,
+            overtime: 0,
+            present: false,
+            attendanceStatus: null
+          };
+        }
         
-        return updatedDays;
+        // Prendre le premier pointage du jour
+        const clock = dayClocks[0];
+        const clockIn = clock.arrival_time.split(' ')[1].substring(0, 5);
+        const clockOut = clock.departure_time ? clock.departure_time.split(' ')[1].substring(0, 5) : "--:--";
+        
+        // Calculer le statut détaillé avec AttendanceService
+        const detailedStatus = AttendanceService.getClockDetailedStatus(clock, userSchedule);
+        
+        // Calculer les heures supplémentaires (> 7h)
+        const overtime = Math.max(0, (detailedStatus.workedTime.totalMinutes / 60) - 7);
+        
+        return {
+          day: dayNames[index],
+          date: dateStr,
+          clockIn,
+          clockOut,
+          worked: detailedStatus.workedTime.totalMinutes / 60,
+          overtime,
+          present: true,
+          attendanceStatus: detailedStatus.arrivalStatus.status === 'late' 
+            ? (detailedStatus.arrivalStatus.duringBreak 
+                ? `Retard (pause déj)` 
+                : `Retard (+${detailedStatus.arrivalStatus.lateMinutes}min)`)
+            : "À l'heure"
+        };
       });
+      
+      setWeekDays(weekData);
+      
+      // Calculer les totaux
+      const totalHours = weekData.reduce((sum, day) => sum + day.worked, 0);
+      const totalOvertime = weekData.reduce((sum, day) => sum + day.overtime, 0);
+      const daysWorked = weekData.filter(day => day.present).length;
+      
+      setWeeklyData({
+        totalHours,
+        overtimeHours: totalOvertime,
+        daysWorked,
+        totalDays: 5
+      });
+      
+    } catch (error) {
+      console.error("Erreur chargement résumé:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Mise à jour initiale
+  // Charger au montage
   useEffect(() => {
-    updateWeekDays();
-  }, [timeData]);
+    loadWeekData();
+  }, [userId]);
 
-  // Vérification périodique des mises à jour dans localStorage
+  // Recharger périodiquement pour voir les nouveaux pointages
   useEffect(() => {
     const interval = setInterval(() => {
-      updateWeekDays();
-    }, 1000); // Vérifier chaque seconde pour une réactivité maximale
+      loadWeekData();
+    }, 5000); // Toutes les 5 secondes
 
     return () => clearInterval(interval);
-  }, []);
+  }, [userId]);
 
   const formatDuration = (hours) => {
     if (hours === 0) return "0h 00m";
@@ -157,6 +135,15 @@ export default function MonResume({ timeData }) {
     const m = Math.floor((hours - h) * 60);
     return `${h}h ${m.toString().padStart(2, '0')}m`;
   };
+
+  if (loading) {
+    return (
+      <div style={styles.resume.container}>
+        <h2 style={styles.resume.title}>Mon résumé hebdomadaire</h2>
+        <div style={{ textAlign: 'center', padding: '40px' }}>Chargement...</div>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.resume.container}>
