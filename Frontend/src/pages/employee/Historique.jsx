@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import styles from "../../style/style.ts";
-
-import DataService from "../../services/DataService.js";
-import AttendanceService from "../../services/AttendanceService";
+import DataService from "../../../services/DataService";
+import AttendanceService from "../../../services/AttendanceService";
 
 export default function Historique({ timeData }) {
   const [selectedMonth, setSelectedMonth] = useState("Ce mois");
