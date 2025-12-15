@@ -103,25 +103,31 @@ export default function Login({ onLogin }) {
         </div>
         <form style={styles.login.form} onSubmit={handleSubmit}>
           <div style={styles.login.formGroup}>
-            <label style={styles.login.inputLabel}>Identifiant</label>
+            <label htmlFor="username" style={styles.login.inputLabel}>Identifiant</label>
             <input
+              id="username"
+              name="username"
               type="text"
               style={styles.login.inputField}
               placeholder="Votre identifiant"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
+              autoComplete="username"
             />
           </div>
           <div style={styles.login.formGroup}>
-            <label style={styles.login.inputLabel}>Mot de passe</label>
+            <label htmlFor="password" style={styles.login.inputLabel}>Mot de passe</label>
             <input
+              id="password"
+              name="password"
               type="password"
               style={styles.login.inputField}
               placeholder="Votre mot de passe"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              autoComplete="current-password"
             />
             <button 
               type="button" 
