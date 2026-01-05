@@ -17,6 +17,8 @@ logs
 .env.local
 .env.*.local
 .env.docker
+.env.prod
+.env.staging 
 
 
 # TypeScript build info

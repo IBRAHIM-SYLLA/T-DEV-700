@@ -1,0 +1,55 @@
+# ============================================
+# STAGE 1: Dependencies
+# ============================================
+FROM node:22-alpine AS dependencies
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# ============================================
+# STAGE 2: Build
+# ============================================
+FROM node:22-alpine AS build
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+# ============================================
+# STAGE 3: Production
+# ============================================
+FROM node:22-alpine AS production
+
+ENV NODE_ENV=production
+
+# Sécurité : user non-root
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+WORKDIR /app
+
+# Copie des dépendances de production
+COPY --from=dependencies --chown=nodejs:nodejs /app/node_modules ./node_modules
+
+# Copie du build
+COPY --from=build --chown=nodejs:nodejs /app/dist ./dist
+COPY --from=build --chown=nodejs:nodejs /app/package*.json ./
+
+# Installe curl pour healthcheck
+RUN apk add --no-cache curl
+
+USER nodejs
+
+EXPOSE 5001
+
+# Health check endpoint (à ajouter dans ton server.ts)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:5001/health || exit 1
+
+CMD ["node", "dist/index.js"]
