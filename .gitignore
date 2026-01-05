@@ -38,7 +38,6 @@ API/dist/
 API/build/
 API/tmp/
 API/logs/
-API/package-lock.json
 API/uploads/
 
 # Ignore compiled JS in src

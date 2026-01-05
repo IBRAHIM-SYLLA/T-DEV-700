@@ -4,6 +4,8 @@ import path from "path";
 import { testConnection } from './config/database';
 import UserRouter from './routes/UserRouter';
 import AuthRouter from './routes/AuthRouter';
+import express from 'express';
+import 'reflect-metadata'; // ⚠️ IMPORTANT pour TypeORM
 
 dotenv.config();
 //création de l'app express
