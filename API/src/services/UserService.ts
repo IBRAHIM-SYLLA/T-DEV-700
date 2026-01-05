@@ -143,5 +143,4 @@ export class UserService {
 
         await this.userRepo.remove(user);
     }
-
 }
