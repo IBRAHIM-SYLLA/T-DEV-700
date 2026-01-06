@@ -47,7 +47,6 @@ userRouter.post('/', async (req: Request, res: Response) => {
 
 userRouter.put('/:id', async (req: Request, res: Response) => {
     try {
-        const saltRounds = 10;
         let userId: number = Number.parseInt(req.params.id);
         const user = await userService.updateUser(userId, req);
         res.status(201).json(user);

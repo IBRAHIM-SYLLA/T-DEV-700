@@ -1,9 +1,10 @@
 import dotenv from "dotenv";
-import cors from 'cors';
-import path from "path";
-import { testConnection } from './config/database';
-import UserRouter from './routes/UserRouter';
-import AuthRouter from './routes/AuthRouter';
+import express, { Request, Response } from "express";
+import cors from "cors";
+import { AppDataSource, testConnection } from "./config/database";
+import UserRouter from "./routes/UserRouter";
+import AuthRouter from "./routes/AuthRouter";
+import TeamRouter from "./routes/TeamRouter";
 
 dotenv.config();
 //création de l'app express
@@ -13,30 +14,33 @@ app.use(express.json());
 
 app.use('/api/users', UserRouter);
 app.use('/api/auth', AuthRouter);
-
-const envPath = path.resolve(process.cwd(), '.env');
-dotenv.config({ path: envPath });
-
-
-if (process.env.NODE_ENV !== 'test') {
-  const PORT = process.env.BACKEND_PORT || 5001;
-  app.listen(PORT, async () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-    await testConnection();
-  });
-}
+app.use('/api/teams', TeamRouter);
 
 // route de test
-app.get('/', (req, res) => {
+app.get('/', (_req: Request, res: Response) => {
   res.send('✅ Time Manager API is running');
 });
 
-// Démarrage du serveur
-const PORT = process.env.BACKEND_PORT || 5001;
-app.listen(process.env.BACKEND_PORT || 5001, async () => {
-  console.log(`🚀 Server running on port ${process.env.BACKEND_PORT || 5001}, http://localhost:${PORT}`);
-  await testConnection();
-});
+// Démarrage du serveur (évite d'écouter en mode test)
+if (process.env.NODE_ENV !== "test") {
+  const PORT = Number(process.env.BACKEND_PORT) || 5001;
+  (async () => {
+    try {
+      if (!AppDataSource.isInitialized) {
+        await AppDataSource.initialize();
+        console.log("✅ TypeORM DataSource initialisé");
+      }
+      await testConnection();
+
+      app.listen(PORT, () => {
+        console.log(`🚀 Server running on http://localhost:${PORT}`);
+      });
+    } catch (err) {
+      console.error("❌ Erreur au démarrage du serveur :", err);
+      process.exit(1);
+    }
+  })();
+}
 
 export default app;
 

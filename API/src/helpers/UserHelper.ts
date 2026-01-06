@@ -98,10 +98,14 @@ export class UserHelper {
     toUserLight(user: UserEntity): UserLight {
         const light = new UserLight();
 
+        light.user_id = user.user_id;
         light.first_name = user.first_name;
         light.last_name = user.last_name;
         light.email = user.email;
         light.phone_number = user.phone_number;
+
+        light.role = user.role;
+        light.team_id = user.team ? user.team.team_id : null;
 
         return light;
     }

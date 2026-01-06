@@ -9,6 +9,10 @@ dotenv.config();
 export class AuthService {
   private static userRepository = new UserRepository();
 
+  private static isBcryptHash(value: string): boolean {
+    return typeof value === "string" && /^\$2[aby]\$\d{2}\$/.test(value);
+  }
+
   /**
    * @name register
    * @param user
@@ -45,10 +49,25 @@ export class AuthService {
     password: string
   ): Promise<{ token: string; user: UserModel }> {
     try {
-      const user = await this.userRepository.findByEmail(email);
+      const normalizedEmail = String(email ?? "").trim();
+      const user = await this.userRepository.findByEmail(normalizedEmail);
       if (!user) throw new Error("Email ou mot de passe incorrect");
 
-      const validPassword = await bcrypt.compare(password, user.password);
+      let validPassword = false;
+      if (this.isBcryptHash(user.password)) {
+        validPassword = await bcrypt.compare(password, user.password);
+      } else {
+        // Compat seed: init.sql stocke des passwords en clair
+        validPassword = password === user.password;
+
+        // Upgrade immédiat vers bcrypt si OK
+        if (validPassword) {
+          const hashedPassword = await bcrypt.hash(password, 10);
+          await this.userRepository.updatePassword(user.user_id, hashedPassword);
+          user.password = hashedPassword;
+        }
+      }
+
       if (!validPassword) throw new Error("Email ou mot de passe incorrect");
 
       // Génération du token JWT
@@ -62,7 +81,8 @@ export class AuthService {
         { expiresIn: "24h" }
       );
 
-      return { token, user };
+      // Ne jamais renvoyer le mot de passe au frontend
+      return { token, user: { ...user, password: "" } };
     } catch (error: any) {
       console.error("Erreur AuthService.login :", error);
       throw new Error(error.message || "Erreur lors de la connexion");
