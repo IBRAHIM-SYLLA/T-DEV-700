@@ -40,7 +40,7 @@ export class UserService {
      * @description Creer un utilisateur et le renvoie
      * @returns  Promise<UserModel>
      */
-    async createUser(req: any): Promise<UserEntity> {
+    async createUser(req: any): Promise<UserLight> {
         const userToCreate: UserModel = await this.userHelper.userModelByReqBody(req);
         const existingUser = await this.userRepo.findOneBy({
             email: userToCreate.email
@@ -71,7 +71,14 @@ export class UserService {
 
         const newUser = await this.userRepo.save(userEntity);
 
-        return newUser;
+        const createdWithRelations = await this.userRepo.findOne({
+            where: { user_id: newUser.user_id },
+            relations: ["team", "managed_teams"]
+        });
+        if (!createdWithRelations) {
+            throw new Error("Utilisateur créé mais introuvable");
+        }
+        return this.userHelper.toUserLight(createdWithRelations);
     }
 
 
@@ -82,7 +89,7 @@ export class UserService {
  * @description Creer un utilisateur et le renvoie
  * @returns  Promise<UserModel>
  */
-    async updateUser(userId: number, req: any): Promise<UserEntity> {
+    async updateUser(userId: number, req: any): Promise<UserLight> {
         const existing = await this.userRepo.findOne({
             where: { user_id: userId },
             relations: ["team"]
@@ -113,7 +120,16 @@ export class UserService {
                 existing.team = team;
             }
         }
-        return await this.userRepo.save(existing);
+        await this.userRepo.save(existing);
+
+        const updatedWithRelations = await this.userRepo.findOne({
+            where: { user_id: userId },
+            relations: ["team", "managed_teams"]
+        });
+        if (!updatedWithRelations) {
+            throw new Error("Utilisateur mis à jour mais introuvable");
+        }
+        return this.userHelper.toUserLight(updatedWithRelations);
     }
 
 

@@ -6,7 +6,7 @@
     "moduleResolution": "node",
     "rootDir": ".",
     "outDir": "dist",
-    "strict": false,    
+    "strict": false,
     "strictPropertyInitialization": false,
     "noImplicitAny": false,
     "esModuleInterop": true,

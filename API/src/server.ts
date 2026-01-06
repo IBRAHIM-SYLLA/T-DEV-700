@@ -1,26 +1,30 @@
 import dotenv from "dotenv";
 import path from "path";
-import { AppDataSource, testConnection } from './config/database';
+import { AppDataSource, testConnection } from "./config/database";
 import app from "./index";
 
-dotenv.config();
-
-console.log("🔥 SERVER.TS EXECUTÉ");
-
-const envPath = path.resolve(process.cwd(), '.env');
+const envPath = path.resolve(process.cwd(), ".env");
 dotenv.config({ path: envPath });
-// Démarrage du serveur
-const PORT = process.env.BACKEND_PORT || 5001;
 
+if (process.env.NODE_ENV !== "test") {
+  const PORT = Number(process.env.BACKEND_PORT) || 5001;
+  (async () => {
+    try {
+      if (!AppDataSource.isInitialized) {
+        await AppDataSource.initialize();
+        console.log("✅ TypeORM DataSource initialisé");
+      }
 
-AppDataSource.initialize()
-  .then(() => {
-    console.log("✅ DataSource initialisé");
-    app.listen(process.env.BACKEND_PORT || 5001, async () => {
-      console.log(`🚀 Server running on port ${process.env.BACKEND_PORT || 5001}, http://localhost:${PORT}`);
       await testConnection();
-    });
-  })
-  .catch((err) => {
-    console.error("❌ Erreur TypeORM :", err);
-  });
+
+      app.listen(PORT, () => {
+        console.log(`🚀 Server running on http://localhost:${PORT}`);
+      });
+    } catch (err) {
+      console.error("❌ Erreur au démarrage du serveur :", err);
+      process.exit(1);
+    }
+  })();
+}
+
+export default app;

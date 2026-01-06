@@ -1,6 +1,7 @@
 import { AppDataSource } from "../config/database";
 import { TeamHelper } from "../helpers/TeamHelper";
 import { TeamModel } from "../models/Team/team.model";
+import { TeamLight } from "../models/Team/team-light.model";
 import { TeamEntity } from "../models/Team/TeamEntity";
 import { UserEntity } from "../models/User/UserEntity";
 
@@ -9,14 +10,23 @@ export class TeamService {
     teamRepo = AppDataSource.getRepository(TeamEntity);
     userRepo = AppDataSource.getRepository(UserEntity);
 
-    async getAllTeams(): Promise<TeamEntity[]> {
+    private toTeamLight(team: TeamEntity): TeamLight {
+        const light = new TeamLight();
+        light.team_id = team.team_id;
+        light.name = team.name;
+        light.description = team.description ?? null;
+        light.manager_id = team.manager ? team.manager.user_id : null;
+        return light;
+    }
+
+    async getAllTeams(): Promise<TeamLight[]> {
         const teams = await this.teamRepo.find({
             relations: ["manager", "members"]
         });
-        return teams;
+        return teams.map((t) => this.toTeamLight(t));
     }
 
-    async getTeamById(teamId: number): Promise<TeamEntity> {
+    async getTeamById(teamId: number): Promise<TeamLight> {
         const team = await this.teamRepo.findOne({
             where: { team_id: teamId },
             relations: ["manager", "members"]
@@ -25,11 +35,11 @@ export class TeamService {
             throw new Error(`Aucune équipe avec cet l'Id ${teamId} en base de donnée`);
         }
         else {
-            return team
+            return this.toTeamLight(team);
         }
     }
 
-    async createTeam(req: any): Promise<TeamEntity> {
+    async createTeam(req: any): Promise<TeamLight> {
         let teamForCreate: TeamModel = this.teamHelper.teamModelByReqBody(req);
         let newTeam: TeamEntity = new TeamEntity();
         if (teamForCreate) {
@@ -55,10 +65,17 @@ export class TeamService {
                 }
             }
         }
-        return newTeam;
+        const created = await this.teamRepo.findOne({
+            where: { team_id: newTeam.team_id },
+            relations: ["manager"]
+        });
+        if (!created) {
+            throw new Error("Équipe créée mais introuvable");
+        }
+        return this.toTeamLight(created);
     }
 
-    async updateTeam(req: any, teamId: number): Promise<TeamEntity> {
+    async updateTeam(req: any, teamId: number): Promise<TeamLight> {
         if (!teamId) {
             throw new Error("team_id manquant pour la mise à jour.");
         }
@@ -96,8 +113,16 @@ export class TeamService {
         existingTeam.description = teamForUpdate.description ?? existingTeam.description;
         existingTeam.manager = newManager ?? existingTeam.manager;
 
-        const updatedTeam = await this.teamRepo.save(existingTeam);
-        return updatedTeam;
+        await this.teamRepo.save(existingTeam);
+
+        const updated = await this.teamRepo.findOne({
+            where: { team_id: teamId },
+            relations: ["manager"]
+        });
+        if (!updated) {
+            throw new Error("Équipe mise à jour mais introuvable");
+        }
+        return this.toTeamLight(updated);
     }
 
     async deleteTeam(teamId: number): Promise<void> {

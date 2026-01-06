@@ -169,6 +169,23 @@ export class UserRepository {
     }
 
     /**
+     * @name updatePassword
+     * @description Met à jour le mot de passe (hashé) d'un utilisateur
+     */
+    async updatePassword(userId: number, hashedPassword: string): Promise<void> {
+        let conn;
+        try {
+            conn = await pool.getConnection();
+            await conn.query(`UPDATE users SET password = ? WHERE user_id = ?`, [hashedPassword, userId]);
+        } catch (err) {
+            console.error("Erreur lors de la mise à jour du mot de passe :", err);
+            throw err;
+        } finally {
+            if (conn) conn.release();
+        }
+    }
+
+    /**
      * @name checkIfExists()
      * @param email
      * @description Vérifie si un utilisateur existe déjà
