@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import styles from "../../style/style.ts";
-import DataService from "../../../services/DataService";
 import AttendanceService from "../../../services/AttendanceService";
+import ClocksApi from "../../../services/ClocksApi";
 
 export default function MonResume({ userId = 3 }) {
   const [weeklyData, setWeeklyData] = useState({
@@ -13,6 +13,18 @@ export default function MonResume({ userId = 3 }) {
 
   const [weekDays, setWeekDays] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [selectedMonthKey, setSelectedMonthKey] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
+
+  const [monthlyData, setMonthlyData] = useState({
+    totalHours: 0,
+    overtimeHours: 0,
+    daysWorked: 0,
+    delays: 0
+  });
 
   // Calculer la semaine courante (Lundi - Vendredi)
   const getCurrentWeekDates = () => {
@@ -41,9 +53,37 @@ export default function MonResume({ userId = 3 }) {
       const weekDates = getCurrentWeekDates();
       const dayNames = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"];
       
-      // Récupérer tous les pointages de l'utilisateur
-      const allClocks = await DataService.getClocksByUserId(userId);
-      const userSchedule = await DataService.getSchedulesByUserId(userId);
+      // Récupérer les pointages réels depuis l'API
+      const allClocks = await ClocksApi.listForUser(userId);
+
+      // ===== Mensuel (basé sur le mois sélectionné) =====
+      const monthClocks = (allClocks || [])
+        .filter((c) => AttendanceService.toIsoDateKey(c.arrival_time)?.startsWith(selectedMonthKey))
+        .filter((c) => c.departure_time);
+
+      const monthTotals = monthClocks.reduce(
+        (acc, clock) => {
+          const detailed = AttendanceService.getClockDetailedStatus(clock, null);
+          const workedMinutes = detailed.workedHours?.totalMinutes || 0;
+          const workedHours = workedMinutes / 60;
+          const overtime = Math.max(0, workedHours - 7);
+          const isDelay = detailed.arrivalStatus?.status === "late";
+
+          acc.totalHours += workedHours;
+          acc.overtimeHours += overtime;
+          acc.daysWorked += 1;
+          if (isDelay) acc.delays += 1;
+          return acc;
+        },
+        { totalHours: 0, overtimeHours: 0, daysWorked: 0, delays: 0 }
+      );
+
+      setMonthlyData({
+        totalHours: monthTotals.totalHours,
+        overtimeHours: monthTotals.overtimeHours,
+        daysWorked: monthTotals.daysWorked,
+        delays: monthTotals.delays
+      });
       
       // Mapper chaque jour de la semaine
       const weekData = weekDates.map((date, index) => {
@@ -51,7 +91,7 @@ export default function MonResume({ userId = 3 }) {
         
         // Trouver les pointages pour ce jour
         const dayClocks = allClocks.filter(clock => 
-          clock.arrival_time.startsWith(dateStr)
+          AttendanceService.toIsoDateKey(clock.arrival_time) === dateStr
         );
         
         if (dayClocks.length === 0) {
@@ -69,21 +109,22 @@ export default function MonResume({ userId = 3 }) {
         
         // Prendre le premier pointage du jour
         const clock = dayClocks[0];
-        const clockIn = clock.arrival_time.split(' ')[1].substring(0, 5);
-        const clockOut = clock.departure_time ? clock.departure_time.split(' ')[1].substring(0, 5) : "--:--";
+        const clockIn = (AttendanceService.toIsoTime(clock.arrival_time) || "--:--").substring(0, 5);
+        const clockOut = clock.departure_time ? (AttendanceService.toIsoTime(clock.departure_time) || "--:--").substring(0, 5) : "--:--";
         
         // Calculer le statut détaillé avec AttendanceService
-        const detailedStatus = AttendanceService.getClockDetailedStatus(clock, userSchedule);
+        const detailedStatus = AttendanceService.getClockDetailedStatus(clock, null);
         
         // Calculer les heures supplémentaires (> 7h)
-        const overtime = Math.max(0, (detailedStatus.workedTime.totalMinutes / 60) - 7);
+        const workedTotalMinutes = detailedStatus.workedHours?.totalMinutes || 0;
+        const overtime = Math.max(0, (workedTotalMinutes / 60) - 7);
         
         return {
           day: dayNames[index],
           date: dateStr,
           clockIn,
           clockOut,
-          worked: detailedStatus.workedTime.totalMinutes / 60,
+          worked: workedTotalMinutes / 60,
           overtime,
           present: true,
           attendanceStatus: detailedStatus.arrivalStatus.status === 'late' 
@@ -118,16 +159,19 @@ export default function MonResume({ userId = 3 }) {
   // Charger au montage
   useEffect(() => {
     loadWeekData();
-  }, [userId]);
+  }, [userId, selectedMonthKey]);
 
-  // Recharger périodiquement pour voir les nouveaux pointages
-  useEffect(() => {
-    const interval = setInterval(() => {
-      loadWeekData();
-    }, 5000); // Toutes les 5 secondes
-
-    return () => clearInterval(interval);
-  }, [userId]);
+  const monthOptions = (() => {
+    const now = new Date();
+    const options = [];
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const label = d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+      options.push({ key, label });
+    }
+    return options;
+  })();
 
   const formatDuration = (hours) => {
     if (hours === 0) return "0h 00m";
@@ -222,6 +266,59 @@ export default function MonResume({ userId = 3 }) {
             <span style={styles.resume.overtimeNote}>Rémunération majorée à 125%</span>
           </div>
           <div style={styles.resume.overtimeTotal}>{formatDuration(weeklyData.overtimeHours)}</div>
+        </div>
+      </div>
+
+      <div style={styles.resume.weekDetail}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+          <h3 style={styles.resume.weekTitle}>Mon résumé mensuel</h3>
+          <select
+            value={selectedMonthKey}
+            onChange={(e) => setSelectedMonthKey(e.target.value)}
+            style={styles.history.monthSelector}
+          >
+            {monthOptions.map((opt) => (
+              <option key={opt.key} value={opt.key}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div style={styles.resume.cards}>
+          <div style={styles.resume.card}>
+            <div style={styles.resume.cardIcon}>⏱️</div>
+            <div style={styles.resume.cardContent}>
+              <div style={styles.resume.cardLabel}>Heures totales</div>
+              <div style={styles.resume.cardValue}>{formatDuration(monthlyData.totalHours)}</div>
+            </div>
+          </div>
+
+          <div style={styles.resume.card}>
+            <div style={styles.resume.cardIcon}>💰</div>
+            <div style={styles.resume.cardContent}>
+              <div style={styles.resume.cardLabel}>Heures sup.</div>
+              <div style={styles.mergeStyles(styles.resume.cardValue, styles.resume.cardValueOvertime)}>
+                {formatDuration(monthlyData.overtimeHours)}
+              </div>
+            </div>
+          </div>
+
+          <div style={styles.resume.card}>
+            <div style={styles.resume.cardIcon}>📅</div>
+            <div style={styles.resume.cardContent}>
+              <div style={styles.resume.cardLabel}>Jours pointés</div>
+              <div style={styles.resume.cardValue}>{monthlyData.daysWorked}</div>
+            </div>
+          </div>
+
+          <div style={styles.resume.card}>
+            <div style={styles.resume.cardIcon}>⚠️</div>
+            <div style={styles.resume.cardContent}>
+              <div style={styles.resume.cardLabel}>Retards</div>
+              <div style={styles.resume.cardValue}>{monthlyData.delays}</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

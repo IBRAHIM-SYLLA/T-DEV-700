@@ -10,12 +10,18 @@ export default defineConfig({
       },
     }),
   ],
-    server: {
-    host: true,      
-    port: parseInt(process.env.FRONTEND_PORT),      
+  server: {
+    host: true,
+    port: Number(process.env.FRONTEND_PORT) || 3000,
     strictPort: true,
+    proxy: {
+      '/api': {
+        target: `http://backend:${process.env.BACKEND_PORT || 5002}`,
+        changeOrigin: true,
+      },
+    },
     watch: {
-      usePolling: true, 
+      usePolling: true,
     },
   },
   preview: {
