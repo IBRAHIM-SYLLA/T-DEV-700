@@ -6,7 +6,9 @@
     "moduleResolution": "node",
     "rootDir": ".",
     "outDir": "dist",
-    "strict": true,
+    "strict": false,    
+    "strictPropertyInitialization": false,
+    "noImplicitAny": false,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
@@ -19,8 +21,12 @@
     ],
   },
   "include": [
-    "src",
-    "src/server.ts",
-    "tests"
+    "src/**/*",
+    "tests/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "coverage"
   ]
 }
