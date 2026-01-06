@@ -77,6 +77,10 @@ coverage/
 API/coverage/
 Frontend/coverage/
 
+# Secrets
+secrets/
+*.key
+*.pem
 
 #  Optional lockfiles
 
