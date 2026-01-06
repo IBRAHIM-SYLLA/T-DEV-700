@@ -1,5 +1,5 @@
 import express, { Router, Request, Response } from "express";
-import { TeamService } from "../services/TeamService";
+import { TeamService } from "../services/team-service";
 
 const teamRouter: Router = express.Router();
 

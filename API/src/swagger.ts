@@ -1,30 +1,8 @@
-import swaggerJsdoc from "swagger-jsdoc";
+import YAML from "yamljs";
+import path from "path";
 
-export const swaggerSpec = swaggerJsdoc({
-    definition: {
-        openapi: "3.0.0",
-        info: {
-            title: "TimeManager API",
-            version: "1.0.0",
-            description: "API de gestion des pointages",
-        },
-        servers: [
-            {
-                url: "http://localhost:5001",
-            },
-        ],
-        components: {
-            securitySchemes: {
-                bearerAuth: {
-                    type: "http",
-                    scheme: "bearer",
-                    bearerFormat: "JWT",
-                },
-            },
-        },
-        security: [{ bearerAuth: [] }],
-    },
-    apis: ["./src/routes/*.ts"], // 👈 IMPORTANT
-});
+const swaggerDocs = YAML.load(
+    path.join(__dirname, "swagger/api-docs.swagger.yaml")
+);
 
-export default swaggerSpec;
+export default swaggerDocs;

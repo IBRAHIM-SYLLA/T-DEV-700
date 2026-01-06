@@ -1,0 +1,247 @@
+openapi: 3.0.0
+
+info:
+  title: "TimeManager API"
+  version: "1.0.0"
+  description: "API de gestion des pointages"
+
+tags:
+  - name: Reports
+    description: Reporting and KPIs endpoints
+
+paths:
+  /api/reports:
+    get:
+      tags: [Reports]
+      summary: Get a global report based on the chosen KPIs
+      description: |
+        Returns aggregated KPIs for the whole system.
+        This endpoint is global and does NOT accept userId or teamId filters.
+      parameters:
+        - in: query
+          name: kpis
+          required: true
+          description: Comma-separated list of KPIs to include
+          schema:
+            type: string
+            example: total_worked_time,late_rate,active_users
+        - in: query
+          name: from
+          description: Start date
+          schema:
+            type: string
+            format: date-time
+            example: 2025-01-01T00:00:00Z
+        - in: query
+          name: to
+          description: End date
+          schema:
+            type: string
+            format: date-time
+            example: 2025-01-31T23:59:59Z
+      responses:
+        "200":
+          description: Global report result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalWorkedTime:
+                    type: number
+                    example: 1240
+                  averageWorkedTime:
+                    type: number
+                    example: 7.3
+                  lateRate:
+                    type: number
+                    example: 12.5
+                  activeUsers:
+                    type: integer
+                    example: 18
+                  incompleteClocks:
+                    type: integer
+                    example: 6
+        "400":
+          description: Missing or invalid parameters
+
+  /api/reports/total-worked-time:
+    get:
+      tags: [Reports]
+      summary: Get total worked time
+      description: Returns the total worked time in hours.
+      parameters:
+        - in: query
+          name: userId
+          schema:
+            type: integer
+            example: 5
+        - in: query
+          name: teamId
+          schema:
+            type: integer
+            example: 2
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Total worked time
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalWorkedTime:
+                    type: number
+                    example: 42.5
+
+  /api/reports/average-worked-time:
+    get:
+      tags: [Reports]
+      summary: Get average worked time per active user
+      description: Returns the average worked time per active user in hours.
+      parameters:
+        - in: query
+          name: userId
+          schema:
+            type: integer
+        - in: query
+          name: teamId
+          schema:
+            type: integer
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Average worked time
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  averageWorkedTime:
+                    type: number
+                    example: 7.4
+
+  /api/reports/late-rate:
+    get:
+      tags: [Reports]
+      summary: Get late arrival rate
+      description: |
+        Returns the percentage of late arrivals.
+        A clock is considered late if arrival_time is after the configured limit hour.
+      parameters:
+        - in: query
+          name: userId
+          schema:
+            type: integer
+        - in: query
+          name: teamId
+          schema:
+            type: integer
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Late rate percentage
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  lateRate:
+                    type: number
+                    example: 15.2
+
+  /api/reports/active-users:
+    get:
+      tags: [Reports]
+      summary: Get active users count
+      description: Returns the number of users having at least one clock in the period.
+      parameters:
+        - in: query
+          name: teamId
+          schema:
+            type: integer
+            example: 1
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Active users count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  activeUsers:
+                    type: integer
+                    example: 8
+
+  /api/reports/incomplete-clocks:
+    get:
+      tags: [Reports]
+      summary: Get incomplete clocks
+      description: Returns the number of clocks without a departure time.
+      parameters:
+        - in: query
+          name: userId
+          schema:
+            type: integer
+        - in: query
+          name: teamId
+          schema:
+            type: integer
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Incomplete clocks count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  incompleteClocks:
+                    type: integer
+                    example: 3

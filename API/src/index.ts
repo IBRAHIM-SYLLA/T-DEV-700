@@ -1,10 +1,11 @@
 import express from 'express';
-import userRouter from './routes/UserRouter';
-import AuthRouter from './routes/AuthRouter';
-import teamRouter from './routes/TeamRouter';
-import clockRouter from './routes/ClockRouter';
+import userRouter from './routes/user-router';
+import AuthRouter from './routes/auth-router';
+import teamRouter from './routes/team-router';
+import clockRouter from './routes/clock-router';
 import swaggerUi from "swagger-ui-express";
-import { swaggerSpec } from "./swagger";
+import swaggerDocs from "./swagger";
+import reportRouter from './routes/report-router';
 
 const app = express();
 app.use(express.json());
@@ -14,8 +15,7 @@ app.get('/', (_, res) => {
 });
 
 // Swagger
-console.log("✅ Swagger middleware registered");
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 app.use('/api/users', userRouter);
 
@@ -23,6 +23,8 @@ app.use("/api/auth", AuthRouter);
 
 app.use("/api/teams", teamRouter);
 
-app.use("/api/clocks/", clockRouter)
+app.use("/api/clocks", clockRouter);
+
+app.use("/api/reports", reportRouter);
 
 export default app;
