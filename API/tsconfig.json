@@ -16,7 +16,7 @@
     "types": [
       "node",
       "jest"
-    ]
+    ],
   },
   "include": [
     "src",
