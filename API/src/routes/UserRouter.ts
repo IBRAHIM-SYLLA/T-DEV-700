@@ -1,11 +1,12 @@
 import express, { Request, Response, Router } from "express";
 import { UserService } from "../services/UserService";
+import { ClockService } from "../services/ClockService";
 
 const userRouter: Router = express.Router();
 
 // Création des instances
 const userService = new UserService();
-
+const clockService = new ClockService();
 /**
  * @route GET /users
  * @desc Récupère tous les utilisateurs
@@ -65,6 +66,19 @@ userRouter.delete('/:id', async (req: Request, res: Response) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Erreur lors de la suppression de l’utilisateur' });
+    }
+});
+
+/**
+ * GET /users/:id/clocks
+ */
+userRouter.get("/:id/clocks", async (req: Request, res: Response) => {
+    try {
+        const userId = Number(req.params.id);
+        const clocks = await clockService.getUserClocksSummary(userId);
+        res.status(200).json(clocks);
+    } catch (error: any) {
+        res.status(400).json({ message: error.message });
     }
 });
 
