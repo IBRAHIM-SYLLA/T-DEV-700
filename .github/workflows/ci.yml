@@ -64,6 +64,17 @@ jobs:
         with:
           name: couverture-backend
           path: API/coverage/
+      
+      - name: Generate Coverage Badge
+        run: |
+          cd API
+          npm run test -- --coverage --coverageReporters="json-summary"
+          
+      - name: Coverage Report Comment
+        uses: romeovs/lcov-reporter-action@v0.3.1
+        with:
+          lcov-file: ./API/coverage/lcov.info
+          github-token: ${{ secrets.GITHUB_TOKEN }}
   lint:
     name: Vérification Lint
     runs-on: ubuntu-latest
@@ -85,3 +96,40 @@ jobs:
       - name: Lancement du lint
         working-directory: ./API
         run: npm run lint || echo "⚠️ Aucun script lint défini"
+  quality-gate:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    needs: [build, test, lint]
+    if: always()
+    
+    steps:
+      - name: Check All Jobs Status
+        run: |
+          if [ "${{ needs.build.result }}" != "success" ] || \
+             [ "${{ needs.test.result }}" != "success" ] || \
+             [ "${{ needs.lint.result }}" != "success" ]; then
+            echo "❌ Quality gate failed - Pipeline stopped"
+            exit 1
+          fi
+          echo "✅ Quality gate passed"
+
+  # Ajouter un job pour valider les builds Docker
+  docker-validation:
+    name: Validate Docker Builds
+    runs-on: ubuntu-latest
+    needs: quality-gate
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Production Images
+        run: |
+          docker-compose -f docker-compose.prod.yml build
+          
+      - name: Test Docker Compose Config
+        run: |
+          docker-compose -f docker-compose.prod.yml config
