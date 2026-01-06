@@ -13,7 +13,7 @@ const UsersApi = {
   },
 
   async create(payload, { token } = {}) {
-    const created = await apiFestch("/api/users", {
+    const created = await apiFetch("/api/users", {
       method: "POST",
       token,
       body: toApiUserPayload(payload)
