@@ -5,6 +5,13 @@ import mockData from '../data/mockData.json';
  * Plus tard, remplacer par des appels API réels
  */
 class DataService {
+  getNextId(items, idKey) {
+    const max = (items || []).reduce((acc, item) => {
+      const value = Number(item?.[idKey]);
+      return Number.isFinite(value) ? Math.max(acc, value) : acc;
+    }, 0);
+    return max + 1;
+  }
   
   /**
    * Simuler un délai réseau
@@ -52,6 +59,59 @@ class DataService {
   async getUsersByRole(role) {
     await this.delay();
     return mockData.users.filter(u => u.role === role);
+  }
+
+  async createUser(payload) {
+    await this.delay();
+    const now = new Date().toISOString();
+
+    if (!payload?.email) {
+      throw new Error('Email is required');
+    }
+    const exists = mockData.users.some(
+      (u) => String(u.email).toLowerCase() === String(payload.email).toLowerCase()
+    );
+    if (exists) {
+      throw new Error('Email already exists');
+    }
+
+    const user = {
+      user_id: this.getNextId(mockData.users, 'user_id'),
+      first_name: payload.first_name,
+      last_name: payload.last_name,
+      email: payload.email,
+      phone_number: payload.phone_number ?? null,
+      password: payload.password,
+      team_id: payload.team_id ?? null,
+      role: payload.role,
+      created_at: now,
+      updated_at: now
+    };
+
+    mockData.users.push(user);
+    return user;
+  }
+
+  async updateUser(userId, patch) {
+    await this.delay();
+    const user = mockData.users.find((u) => u.user_id === userId);
+    if (!user) return null;
+
+    Object.assign(user, patch, { updated_at: new Date().toISOString() });
+    return user;
+  }
+
+  async deleteUser(userId) {
+    await this.delay();
+    const idx = mockData.users.findIndex((u) => u.user_id === userId);
+    if (idx === -1) return false;
+    mockData.users.splice(idx, 1);
+
+    // Optional cleanup for prototype data consistency
+    mockData.clocks = (mockData.clocks || []).filter((c) => c.user_id !== userId);
+    mockData.work_schedules = (mockData.work_schedules || []).filter((s) => s.user_id !== userId);
+
+    return true;
   }
 
   /**
@@ -194,9 +254,10 @@ class DataService {
    */
   async getAttendanceRules() {
     await this.delay();
+    const rules = mockData.attendance_rules;
     return {
-      toleranceMinutes: 5,
-      lunchBreakDuration: 60,
+      toleranceMinutes: rules?.tolerance_minutes ?? 5,
+      lunchBreakDuration: rules?.break_duration_minutes ?? 60,
       maxDailyHours: 10,
       minDailyHours: 7
     };
