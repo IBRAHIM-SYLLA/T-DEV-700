@@ -1,5 +1,5 @@
 import express, { Router, Request, Response } from "express";
-import { ClockService } from "../services/ClockService";
+import { ClockService } from "../services/clock-service";
 
 const clockRouter: Router = express.Router();
 const clockService = new ClockService();

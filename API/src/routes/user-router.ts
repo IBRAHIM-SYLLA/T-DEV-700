@@ -1,6 +1,6 @@
 import express, { Request, Response, Router } from "express";
-import { UserService } from "../services/UserService";
-import { ClockService } from "../services/ClockService";
+import { UserService } from "../services/user-service";
+import { ClockService } from "../services/clock-service";
 
 const userRouter: Router = express.Router();
 
