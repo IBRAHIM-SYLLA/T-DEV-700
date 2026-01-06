@@ -27,7 +27,7 @@ const formatDuration = (hours) => {
   return `${h}h ${m.toString().padStart(2, '0')}m`;
 };
 
-export default function Pointage({ onTimeUpdate }) {
+export default function Pointage({ userId, onTimeUpdate }) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [currentUser, setCurrentUser] = useState(null);
   const [schedule, setSchedule] = useState(null);
@@ -39,9 +39,7 @@ export default function Pointage({ onTimeUpdate }) {
   const [loading, setLoading] = useState(true);
   const [attendanceRules, setAttendanceRules] = useState(null);
 
-  // Récupérer l'utilisateur connecté depuis localStorage
-  const storedUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-  const CURRENT_USER_ID = storedUser.userId || storedUser.user_id || 3;
+  const CURRENT_USER_ID = userId || 3;
 
   // Charger les données initiales
   useEffect(() => {

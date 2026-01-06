@@ -5,7 +5,7 @@ import MonResume from "./employee/MonResume";
 import Historique from "./employee/Historique";
 import Profil from "./employee/Profil";
 
-export default function EmployeeDashboard({ user, onLogout }) {
+export default function EmployeeDashboard({ user, token, onLogout, onUpdateUser }) {
   const [activeTab, setActiveTab] = useState("Pointage");
   const [timeData, setTimeData] = useState(null);
   const [currentUser, setCurrentUser] = useState(user);
@@ -23,6 +23,7 @@ export default function EmployeeDashboard({ user, onLogout }) {
   // Handle user profile updates
   const handleUpdateUser = (updatedUser) => {
     setCurrentUser(updatedUser);
+    if (onUpdateUser) onUpdateUser(updatedUser);
   };
 
   const renderTabContent = () => {
@@ -30,6 +31,7 @@ export default function EmployeeDashboard({ user, onLogout }) {
       return (
         <Profil 
           user={currentUser} 
+          token={token}
           onUpdateUser={handleUpdateUser}
           onBack={() => setShowProfile(false)}
         />
@@ -38,13 +40,13 @@ export default function EmployeeDashboard({ user, onLogout }) {
 
     switch (activeTab) {
       case "Pointage":
-        return <Pointage onTimeUpdate={handleTimeUpdate} />;
+        return <Pointage userId={currentUser.userId || currentUser.user_id} onTimeUpdate={handleTimeUpdate} />;
       
       case "Mon résumé":
         return <MonResume key={refreshKey} timeData={timeData} userId={currentUser.userId || currentUser.user_id} />;
       
       case "Historique":
-        return <Historique key={refreshKey} timeData={timeData} />;
+        return <Historique key={refreshKey} timeData={timeData} userId={currentUser.userId || currentUser.user_id} />;
       
       default:
         return null;

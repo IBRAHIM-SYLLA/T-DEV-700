@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import styles from "../style/style.ts";
+import AuthApi from "../../services/AuthApi";
 
 // Database users based on init.sql
 const databaseUsers = [
@@ -75,19 +76,20 @@ export default function Login({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    const user = databaseUsers.find(
-      (u) => (u.username === username || u.email === username) && u.password === password
-    );
-    if (user) {
+
+    try {
+      setLoading(true);
       setError("");
-      // Save to localStorage for persistence
-      localStorage.setItem('currentUser', JSON.stringify(user));
-      onLogin(user);
-    } else {
-      setError("Email/identifiant ou mot de passe incorrect");
+      const { token, user } = await AuthApi.login({ email: username, password });
+      onLogin({ token, user });
+    } catch (err) {
+      setError(err?.message || "Email/identifiant ou mot de passe incorrect");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -138,7 +140,7 @@ export default function Login({ onLogin }) {
             </button>
           </div>
           <button type="submit" style={styles.login.loginButton}>
-            Se connecter
+            {loading ? "Connexion..." : "Se connecter"}
           </button>
         </form>
         {error && <div style={styles.login.errorMessage}>{error}</div>}

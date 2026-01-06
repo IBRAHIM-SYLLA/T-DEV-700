@@ -3,7 +3,7 @@ import styles from "../../style/style.ts";
 import DataService from "../../../services/DataService";
 import AttendanceService from "../../../services/AttendanceService";
 
-export default function Historique({ timeData }) {
+export default function Historique({ timeData, userId }) {
   const [selectedMonth, setSelectedMonth] = useState("Ce mois");
   const [historyRecords, setHistoryRecords] = useState([]);
   const [filteredRecords, setFilteredRecords] = useState([]);
@@ -16,9 +16,7 @@ export default function Historique({ timeData }) {
     delays: 0
   });
 
-  // Récupérer l'utilisateur connecté depuis localStorage
-  const storedUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-  const CURRENT_USER_ID = storedUser.userId || storedUser.user_id || 3;
+  const CURRENT_USER_ID = userId || 3;
 
   // Charger l'historique réel depuis les données mockées
   useEffect(() => {
