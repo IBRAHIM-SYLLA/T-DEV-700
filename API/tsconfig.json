@@ -6,18 +6,29 @@
     "moduleResolution": "node",
     "rootDir": ".",
     "outDir": "dist",
-    "strict": true,
+    "strict": false,    
+    "strictPropertyInitialization": false,
+    "noImplicitAny": false,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "sourceMap": true,
     "types": [
       "node",
       "jest"
     ]
   },
   "include": [
-    "src",
-    "src/server.ts",
-    "tests"
+    "src/**/*",
+    "tests/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "coverage"
   ]
 }

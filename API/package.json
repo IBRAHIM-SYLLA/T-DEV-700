@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc",    
+    "build:prod": "tsc -p tsconfig.prod.json",
     "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only --ignore-watch node_modules --ignore-watch dist src/server.ts",
     "test": "jest --coverage --runInBand --detectOpenHandles --forceExit"

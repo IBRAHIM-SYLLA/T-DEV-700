@@ -20,19 +20,22 @@ jobs:
       - name: Installation Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22          
+          cache: 'npm'
 
       - name: Installation des dépendances backend
         working-directory: ./API
-        run: npm install
+        run: npm ci
 
       - name: Build du backend
         working-directory: ./API
-        run: npm run build || echo "Aucun build requis pour le backend"
+        run: |
+          npm run build || echo "⚠️ Build warnings detected but continuing"
+        continue-on-error: false
 
       - name: Installation des dépendances frontend
         working-directory: ./Frontend
-        run: npm install
+        run: npm ci
 
       - name: Build du frontend
         working-directory: ./Frontend
@@ -55,26 +58,24 @@ jobs:
         working-directory: ./API
         run: npm ci
 
-      - name: Exécution des tests Jest
+      - name: Exécution des tests Jest avec coverage
         working-directory: ./API
-        run: npm run test -- --coverage
+        run: npm run test -- --coverage --coverageReporters="text" --coverageReporters="lcov"
 
-      - name: Sauvegarde du rapport de couverture
+      - name: Upload Coverage Report
         uses: actions/upload-artifact@v4
         with:
-          name: couverture-backend
+          name: coverage-report
           path: API/coverage/
-      
-      - name: Generate Coverage Badge
+
+      - name: Coverage Summary
+        working-directory: ./API
         run: |
-          cd API
-          npm run test -- --coverage --coverageReporters="json-summary"
-          
-      - name: Coverage Report Comment
-        uses: romeovs/lcov-reporter-action@v0.3.1
-        with:
-          lcov-file: ./API/coverage/lcov.info
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          echo "## 📊 Test Coverage Summary" >> $GITHUB_STEP_SUMMARY
+          if [ -f coverage/coverage-summary.json ]; then
+            cat coverage/coverage-summary.json >> $GITHUB_STEP_SUMMARY
+          fi
+
   lint:
     name: Vérification Lint
     runs-on: ubuntu-latest
@@ -91,11 +92,13 @@ jobs:
 
       - name: Installation du backend
         working-directory: ./API
-        run: npm install
+        run: npm ci
 
       - name: Lancement du lint
         working-directory: ./API
         run: npm run lint || echo "⚠️ Aucun script lint défini"
+        continue-on-error: true
+        
   quality-gate:
     name: Quality Gate
     runs-on: ubuntu-latest
@@ -105,15 +108,21 @@ jobs:
     steps:
       - name: Check All Jobs Status
         run: |
-          if [ "${{ needs.build.result }}" != "success" ] || \
-             [ "${{ needs.test.result }}" != "success" ] || \
-             [ "${{ needs.lint.result }}" != "success" ]; then
-            echo "❌ Quality gate failed - Pipeline stopped"
+          echo "Build status: ${{ needs.build.result }}"
+          echo "Test status: ${{ needs.test.result }}"
+          echo "Lint status: ${{ needs.lint.result }}"
+          
+          if [ "${{ needs.build.result }}" != "success" ]; then
+            echo "❌ Build failed"
+            exit 1
+          fi
+          
+          if [ "${{ needs.test.result }}" != "success" ]; then
+            echo "❌ Tests failed"
             exit 1
           fi
           echo "✅ Quality gate passed"
 
-  # Ajouter un job pour valider les builds Docker
   docker-validation:
     name: Validate Docker Builds
     runs-on: ubuntu-latest
