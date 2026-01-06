@@ -3,7 +3,7 @@ import NavBar from "../../src/components/NavBar";
 import Profil from "./Profil";
 import styles from "../../src/style/style.ts";
 
-export default function ManagerDashboard({ user, onLogout }) {
+export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }) {
   const [showProfile, setShowProfile] = useState(false);
   const [activeTab, setActiveTab] = useState("Tableau de bord");
   const [currentUser, setCurrentUser] = useState(user);
@@ -21,6 +21,7 @@ export default function ManagerDashboard({ user, onLogout }) {
 
   const handleUpdateUser = (updatedUser) => {
     setCurrentUser(updatedUser);
+    if (onUpdateUser) onUpdateUser(updatedUser);
   };
 
   const renderTabContent = () => {
@@ -28,6 +29,7 @@ export default function ManagerDashboard({ user, onLogout }) {
       return (
         <Profil 
           user={currentUser} 
+          token={token}
           onUpdateUser={handleUpdateUser}
           onBack={() => setShowProfile(false)}
         />

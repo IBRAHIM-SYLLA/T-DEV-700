@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import styles from "../../src/style/style.ts";
+import UsersApi from "../../services/UsersApi";
 
-export default function Profil({ user, onUpdateUser, onBack }) {
+export default function Profil({ user, token, onUpdateUser, onBack }) {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -11,6 +12,7 @@ export default function Profil({ user, onUpdateUser, onBack }) {
   const [isEditing, setIsEditing] = useState(false);
   const [errors, setErrors] = useState({});
   const [saveMessage, setSaveMessage] = useState('');
+  const [saving, setSaving] = useState(false);
 
   // Initialize form data with user info
   useEffect(() => {
@@ -65,33 +67,36 @@ export default function Profil({ user, onUpdateUser, onBack }) {
     }
   };
   
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateForm()) {
       return;
     }
 
-    // Simulate API call - in real app, this would call an API
-    const updatedUser = {
-      ...user,
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      email: formData.email,
-      phoneNumber: formData.phoneNumber,
-      username: formData.email // Update username to email for consistency
-    };
+    try {
+      setSaving(true);
+      const userId = user?.userId ?? user?.user_id;
+      const updated = await UsersApi.update(
+        userId,
+        {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phoneNumber: formData.phoneNumber
+        },
+        { token }
+      );
 
-    // Save to localStorage (simulation of persistent storage)
-    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-    
-    if (onUpdateUser) {
-      onUpdateUser(updatedUser);
+      if (onUpdateUser) onUpdateUser(updated);
+
+      setIsEditing(false);
+      setSaveMessage('Profil mis à jour avec succès !');
+      setTimeout(() => setSaveMessage(''), 3000);
+    } catch (err) {
+      setSaveMessage("");
+      setErrors((prev) => ({ ...prev, _global: err?.message || "Erreur lors de la mise à jour" }));
+    } finally {
+      setSaving(false);
     }
-
-    setIsEditing(false);
-    setSaveMessage('Profil mis à jour avec succès !');
-    
-    // Clear success message after 3 seconds
-    setTimeout(() => setSaveMessage(''), 3000);
   };
 
   const handleCancel = () => {
@@ -123,6 +128,12 @@ export default function Profil({ user, onUpdateUser, onBack }) {
         {saveMessage && (
           <div style={styles.profile.successMessage}>
             ✓ {saveMessage}
+          </div>
+        )}
+
+        {errors._global && (
+          <div style={styles.login.errorMessage}>
+            {errors._global}
           </div>
         )}
 
@@ -245,8 +256,9 @@ export default function Profil({ user, onUpdateUser, onBack }) {
               <button 
                 style={styles.profile.saveBtn} 
                 onClick={handleSave}
+                disabled={saving}
               >
-                Sauvegarder
+                {saving ? "Sauvegarde..." : "Sauvegarder"}
               </button>
             </div>
           )}

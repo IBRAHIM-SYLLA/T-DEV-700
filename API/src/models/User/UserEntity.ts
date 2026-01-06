@@ -1,5 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { TeamEntity } from "../Team/TeamEntity";
+import { ClockEntity } from "../Clock/ClockEntity";
 
 @Entity("users")
 export class UserEntity {
@@ -36,4 +37,8 @@ export class UserEntity {
 
     @OneToMany(() => TeamEntity, team => team.manager)
     managed_teams!: TeamEntity[];
+
+    @OneToMany(() => ClockEntity, clock => clock.user)
+    clocks!: ClockEntity[];
+
 }
