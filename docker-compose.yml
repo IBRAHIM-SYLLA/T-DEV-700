@@ -9,6 +9,11 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     ports:
       - "${DB_PORT_OUT}:3306"
     volumes:
@@ -30,7 +35,8 @@ services:
       PMA_USER: ${DB_USER}
       PMA_PASSWORD: ${DB_PASSWORD}
     depends_on:
-      - mariadb
+      mariadb:
+        condition: service_healthy
     networks:
       - timemanager_net
 
@@ -44,10 +50,11 @@ services:
     ports:
       - "${BACKEND_PORT}:${BACKEND_PORT}"
     depends_on:
-      - mariadb
+      mariadb:
+        condition: service_healthy
     command: npm run dev
     volumes:
-      - ./API:/usr/src/app
+      - ./API:/app
       - ./logs/api:/logs
     working_dir: /app
     networks:
