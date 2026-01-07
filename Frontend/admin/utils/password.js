@@ -1,5 +1,5 @@
-export function generateTempPassword(length = 16) {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+export function generateTempPassword(length = 8) {
+  const alphabet = "abcdefghijkmnopqrstuvwxyz23456789";
   const bytes = new Uint8Array(length);
 
   if (typeof crypto !== "undefined" && crypto.getRandomValues) {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import styles from "../../style/style.ts";
-import DataService from "../../../services/DataService";
 import AttendanceService from "../../../services/AttendanceService";
+import ClocksApi from "../../../services/ClocksApi";
 
 export default function Historique({ timeData, userId }) {
   const [selectedMonth, setSelectedMonth] = useState("Ce mois");
@@ -18,29 +18,52 @@ export default function Historique({ timeData, userId }) {
 
   const CURRENT_USER_ID = userId || 3;
 
-  // Charger l'historique réel depuis les données mockées
+  // Charger / rafraîchir l'historique (backend)
   useEffect(() => {
-    loadAttendanceHistory();
-  }, [selectedMonth]);
+    let cancelled = false;
+    let intervalId = null;
+
+    const refresh = async () => {
+      if (cancelled) return;
+      await loadAttendanceHistory();
+    };
+
+    const onVisibilityOrFocus = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+
+    refresh();
+    intervalId = setInterval(refresh, 7_200_000);
+    window.addEventListener("focus", onVisibilityOrFocus);
+    document.addEventListener("visibilitychange", onVisibilityOrFocus);
+
+    return () => {
+      cancelled = true;
+      if (intervalId) clearInterval(intervalId);
+      window.removeEventListener("focus", onVisibilityOrFocus);
+      document.removeEventListener("visibilitychange", onVisibilityOrFocus);
+    };
+  }, [selectedMonth, CURRENT_USER_ID]);
 
   const loadAttendanceHistory = async () => {
     try {
       setLoading(true);
       
       // Récupérer les données
-      const clocks = await DataService.getClocksByUserId(CURRENT_USER_ID);
-      const schedules = await DataService.getSchedulesByUserId(CURRENT_USER_ID);
+      const clocks = await ClocksApi.listForUser(CURRENT_USER_ID);
       
       // Convertir les pointages en historique avec calculs
       const history = clocks
         .filter(clock => clock.departure_time) // Seulement les journées complètes
         .map(clock => {
-          const clockDate = clock.arrival_time.split(' ')[0];
-          const dayOfWeek = AttendanceService.getDayOfWeek(clockDate);
-          const schedule = schedules.find(s => s.day_of_week === dayOfWeek);
+          const clockDate = AttendanceService.toIsoDateKey(clock.arrival_time);
           
           // Obtenir le statut détaillé
-          const detailedStatus = AttendanceService.getClockDetailedStatus(clock, schedule);
+          const detailedStatus = AttendanceService.getClockDetailedStatus(clock, null);
+
+          const workedTotalMinutes = detailedStatus.workedHours?.totalMinutes || 0;
+          const workedHours = workedTotalMinutes / 60;
+          const overtimeHours = Math.max(0, workedHours - 7);
           
           // Formater la date
           const [year, month, day] = clockDate.split('-');
@@ -64,10 +87,10 @@ export default function Historique({ timeData, userId }) {
           
           return {
             date: formattedDate,
-            clockIn: clock.arrival_time.split(' ')[1],
-            clockOut: clock.departure_time.split(' ')[1],
-            duration: detailedStatus.workedHours?.totalMinutes / 60 || 0,
-            overtime: 0, // Calculer si nécessaire
+            clockIn: (AttendanceService.toIsoTime(clock.arrival_time) || '--:--').substring(0, 5),
+            clockOut: (AttendanceService.toIsoTime(clock.departure_time) || '--:--').substring(0, 5),
+            duration: workedHours || 0,
+            overtime: overtimeHours,
             status: status,
             lateMinutes: lateMinutes,
             earlyMinutes: detailedStatus.arrivalStatus?.earlyMinutes || 0,
@@ -92,7 +115,7 @@ export default function Historique({ timeData, userId }) {
       const totalDays = filteredRecords.length;
       const totalHours = filteredRecords.reduce((sum, record) => sum + record.duration, 0);
       const totalOvertime = filteredRecords.reduce((sum, record) => sum + record.overtime, 0);
-      const delays = filteredRecords.filter(record => record.status === "Retard").length;
+      const delays = filteredRecords.filter(record => String(record.status).startsWith("Retard")).length;
       
       setMonthlyStats({
         daysWorked: totalDays,

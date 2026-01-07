@@ -116,7 +116,7 @@ export default function BaseSalaries({ token }) {
       return;
     }
 
-    const tempPassword = generateTempPassword(16);
+    const tempPassword = generateTempPassword(8);
     const created = await UsersApi.create({ ...payload, password: tempPassword }, { token });
     setCreatedCredentials({ email: created.email, password: tempPassword });
     setShowForm(false);

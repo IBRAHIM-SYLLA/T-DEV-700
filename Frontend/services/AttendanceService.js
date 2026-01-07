@@ -2,6 +2,29 @@
  * Service pour gérer la logique de pointage et de calcul des heures
  */
 class AttendanceService {
+
+  toIsoDateKey(dateTime) {
+    if (!dateTime) return null;
+    const date = new Date(dateTime);
+    if (!Number.isFinite(date.getTime())) {
+      if (typeof dateTime === 'string' && dateTime.length >= 10) return dateTime.slice(0, 10);
+      return null;
+    }
+    return date.toISOString().slice(0, 10);
+  }
+
+  toIsoTime(dateTime) {
+    if (!dateTime) return null;
+    const date = new Date(dateTime);
+    if (!Number.isFinite(date.getTime())) {
+      if (typeof dateTime === 'string') {
+        const match = dateTime.match(/(\d{2}:\d{2})(?::\d{2})?/);
+        return match ? `${match[1]}:00` : null;
+      }
+      return null;
+    }
+    return date.toISOString().slice(11, 19);
+  }
   
   /**
    * Obtenir le jour de la semaine à partir d'une date
@@ -22,12 +45,20 @@ class AttendanceService {
    */
   canClockNow(userId, allClocks) {
     const today = new Date().toISOString().split('T')[0];
-    
-    // Trouver le pointage du jour pour cet utilisateur
-    const todayClock = allClocks.find(clock => 
-      clock.user_id === userId && 
-      clock.arrival_time.startsWith(today)
-    );
+    const clocks = allClocks || [];
+
+    const hasUserIdField = clocks.some((c) => c && (typeof c.user_id !== 'undefined' || (c.user && typeof c.user.user_id !== 'undefined')));
+
+    // Trouver le pointage du jour
+    const todayClock = clocks.find((clock) => {
+      const sameDay = this.toIsoDateKey(clock?.arrival_time) === today;
+      if (!sameDay) return false;
+
+      if (!hasUserIdField) return true;
+      if (clock?.user_id === userId) return true;
+      if (clock?.user?.user_id === userId) return true;
+      return false;
+    });
 
     if (!todayClock) {
       // Pas encore pointé aujourd'hui
@@ -62,8 +93,8 @@ class AttendanceService {
    * @returns {Object} - Statut avec détails
    */
   calculateArrivalStatus(expectedTime, actualTime) {
-    // Extraire l'heure de l'arrivée réelle
-    const actualTimeOnly = actualTime.split(' ')[1];
+    // Extraire l'heure de l'arrivée réelle (ISO ou "YYYY-MM-DD HH:MM:SS")
+    const actualTimeOnly = this.toIsoTime(actualTime) || String(actualTime).split(' ')[1];
     
     // Convertir en minutes depuis minuit
     const expectedMinutes = this.timeToMinutes(expectedTime);
@@ -125,7 +156,7 @@ class AttendanceService {
    * @returns {Object} - Statut détaillé
    */
   getClockDetailedStatus(clock, schedule) {
-    if (!clock || !schedule) {
+    if (!clock) {
       return {
         arrivalStatus: null,
         workedHours: null,
@@ -133,12 +164,12 @@ class AttendanceService {
       };
     }
 
-    const expectedArrival = schedule.expected_arrival_time;
+    const expectedArrival = schedule?.expected_arrival_time || '09:00:00';
     const arrivalStatus = this.calculateArrivalStatus(expectedArrival, clock.arrival_time);
     
     // Vérifier si pointé pendant la pause déjeuner
-    if (schedule.lunch_break_start && schedule.lunch_break_end) {
-      const arrivalTimeOnly = clock.arrival_time.split(' ')[1];
+    if (schedule?.lunch_break_start && schedule?.lunch_break_end) {
+      const arrivalTimeOnly = this.toIsoTime(clock.arrival_time) || clock.arrival_time.split(' ')[1];
       const arrivalMinutes = this.timeToMinutes(arrivalTimeOnly);
       const lunchStart = this.timeToMinutes(schedule.lunch_break_start);
       const lunchEnd = this.timeToMinutes(schedule.lunch_break_end);
@@ -166,7 +197,7 @@ class AttendanceService {
    * @returns {number} - Minutes depuis minuit
    */
   timeToMinutes(timeString) {
-    const [hours, minutes] = timeString.split(':').map(Number);
+    const [hours, minutes] = String(timeString).split(':').map(Number);
     return hours * 60 + minutes;
   }
 
