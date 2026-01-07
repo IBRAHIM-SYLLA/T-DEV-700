@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import styles from "../../style/style.ts";
-import DataService from "../../../services/DataService";
 import AttendanceService from "../../../services/AttendanceService";
+import ClocksApi from "../../../services/ClocksApi";
 
 // Fonctions utilitaires pour le formatage du temps
 const formatTime = (date) => {
@@ -29,22 +29,19 @@ const formatDuration = (hours) => {
 
 export default function Pointage({ userId, onTimeUpdate }) {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [currentUser, setCurrentUser] = useState(null);
-  const [schedule, setSchedule] = useState(null);
   const [todayClock, setTodayClock] = useState(null);
   const [canClockIn, setCanClockIn] = useState(false);
   const [canClockOut, setCanClockOut] = useState(false);
   const [arrivalStatus, setArrivalStatus] = useState(null);
   const [workedTime, setWorkedTime] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [attendanceRules, setAttendanceRules] = useState(null);
 
   const CURRENT_USER_ID = userId || 3;
 
   // Charger les données initiales
   useEffect(() => {
     loadUserData();
-  }, []);
+  }, [CURRENT_USER_ID]);
 
   // Mettre à jour l'horloge chaque seconde
   useEffect(() => {
@@ -63,41 +60,19 @@ export default function Pointage({ userId, onTimeUpdate }) {
   const loadUserData = async () => {
     try {
       setLoading(true);
-      
-      // Récupérer l'utilisateur
-      const user = await DataService.getUserById(CURRENT_USER_ID);
-      setCurrentUser(user);
 
-      // Récupérer les règles d'émargement
-      const rules = await DataService.getAttendanceRules();
-      setAttendanceRules(rules);
+      // Récupérer les pointages réels depuis l'API
+      const clocks = await ClocksApi.listForUser(CURRENT_USER_ID);
 
-      // Récupérer le planning du jour
-      const today = new Date();
-      const dayOfWeek = AttendanceService.getDayOfWeek(
-        today.toISOString().split('T')[0]
-      );
-      const daySchedule = await DataService.getScheduleByUserIdAndDay(
-        CURRENT_USER_ID,
-        dayOfWeek
-      );
-      setSchedule(daySchedule);
-
-      // Récupérer tous les pointages
-      const allClocks = await DataService.getAllClocks();
-      
       // Vérifier les possibilités de pointage
-      const clockStatus = AttendanceService.canClockNow(CURRENT_USER_ID, allClocks);
+      const clockStatus = AttendanceService.canClockNow(CURRENT_USER_ID, clocks);
       setCanClockIn(clockStatus.canClockIn);
       setCanClockOut(clockStatus.canClockOut);
       setTodayClock(clockStatus.currentClock);
 
       // Calculer le statut si déjà pointé
-      if (clockStatus.currentClock && daySchedule) {
-        const status = AttendanceService.calculateArrivalStatus(
-          daySchedule.expected_arrival_time,
-          clockStatus.currentClock.arrival_time
-        );
+      if (clockStatus.currentClock) {
+        const status = AttendanceService.calculateArrivalStatus('09:00:00', clockStatus.currentClock.arrival_time);
         setArrivalStatus(status);
 
         if (clockStatus.currentClock.departure_time) {
@@ -115,38 +90,27 @@ export default function Pointage({ userId, onTimeUpdate }) {
   const updateWorkedTime = (clock = todayClock) => {
     if (!clock) return;
 
-    const now = new Date();
-    const timestamp = now.toISOString().replace('T', ' ').substring(0, 19);
-    
-    const worked = AttendanceService.calculateWorkedHours(
-      clock.arrival_time,
-      clock.departure_time || timestamp
-    );
+    const nowIso = new Date().toISOString();
+    const worked = AttendanceService.calculateWorkedHours(clock.arrival_time, clock.departure_time || nowIso);
     setWorkedTime(worked);
   };
 
   const handleClockIn = async () => {
     try {
       setLoading(true);
-      const newClock = await DataService.clockIn(CURRENT_USER_ID);
+      const newClock = await ClocksApi.toggle(CURRENT_USER_ID);
       setTodayClock(newClock);
       setCanClockIn(false);
       setCanClockOut(true);
 
-      // Calculer le statut d'arrivée
-      if (schedule) {
-        const status = AttendanceService.calculateArrivalStatus(
-          schedule.expected_arrival_time,
-          newClock.arrival_time
-        );
-        setArrivalStatus(status);
+      const status = AttendanceService.calculateArrivalStatus('09:00:00', newClock.arrival_time);
+      setArrivalStatus(status);
 
-        // Afficher un message selon le statut
-        if (status.status === 'late') {
-          alert(`⚠️ Retard de ${status.lateMinutes} minutes\nHeure prévue: ${schedule.expected_arrival_time}\nHeure d'arrivée: ${newClock.arrival_time.split(' ')[1]}`);
-        } else {
-          alert(`✅ À l'heure!\nHeure d'arrivée: ${newClock.arrival_time.split(' ')[1]}`);
-        }
+      const arrivalTime = AttendanceService.toIsoTime(newClock.arrival_time) || "";
+      if (status.status === 'late') {
+        alert(`⚠️ Retard de ${status.lateMinutes} minutes\nHeure prévue: 09:00\nHeure d'arrivée: ${arrivalTime.substring(0, 5)}`);
+      } else {
+        alert(`✅ À l'heure!\nHeure d'arrivée: ${arrivalTime.substring(0, 5)}`);
       }
 
       // Notifier le parent pour rafraîchir les autres onglets
@@ -164,9 +128,9 @@ export default function Pointage({ userId, onTimeUpdate }) {
   const handleClockOut = async () => {
     try {
       setLoading(true);
-      const updatedClock = await DataService.clockOut(CURRENT_USER_ID);
+      const updatedClock = await ClocksApi.toggle(CURRENT_USER_ID);
       setTodayClock(updatedClock);
-      setCanClockIn(true);
+      setCanClockIn(false);
       setCanClockOut(false);
       
       // Calculer le temps total travaillé
@@ -201,14 +165,18 @@ export default function Pointage({ userId, onTimeUpdate }) {
       // En cours de travail
       if (arrivalStatus && arrivalStatus.status === 'late') {
         if (arrivalStatus.duringBreak) {
-          return `Retard (pointé pendant pause déj à ${todayClock.arrival_time.split(' ')[1]})`;
+          const t = AttendanceService.toIsoTime(todayClock.arrival_time) || '';
+          return `Retard (pointé pendant pause déj à ${t.substring(0, 5)})`;
         }
         return `Retard (${arrivalStatus.lateMinutes}min)`;
       }
       return "Présent";
     }
-    
-    return "Absent";
+
+    if (arrivalStatus && arrivalStatus.status === 'late') {
+      return `Retard (${arrivalStatus.lateMinutes}min)`;
+    }
+    return "Présent";
   };
 
   if (loading) {
@@ -250,21 +218,7 @@ export default function Pointage({ userId, onTimeUpdate }) {
               {workedTime.hours}h {workedTime.minutes.toString().padStart(2, '0')}min
             </div>
             <div style={styles.pointage.timeDetails}>
-              <span>⏰ En cours depuis {todayClock.arrival_time.split(' ')[1]}</span>
-              {workedTime.breakMinutes > 0 && (
-                <span>🍽️ Pause déduite: {Math.floor(workedTime.breakMinutes / 60)}h{workedTime.breakMinutes % 60}min</span>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Info Planning */}
-        {schedule && schedule.is_working_day && (
-          <div style={{...styles.card, margin: '1rem 0', padding: '1rem', backgroundColor: '#f0f9ff', borderRadius: '8px'}}>
-            <div style={{fontSize: '0.9rem', opacity: 0.8}}>
-              <div>📋 Horaires: {schedule.expected_arrival_time.substring(0,5)} - {schedule.expected_departure_time.substring(0,5)}</div>
-              <div>🍽️ Pause: 12:00-14:00 (auto)</div>
-              <div>⏱️ Tolérance: {attendanceRules?.tolerance_minutes || 5} min</div>
+              <span>⏰ En cours depuis {(AttendanceService.toIsoTime(todayClock.arrival_time) || '').substring(0, 5)}</span>
             </div>
           </div>
         )}
@@ -294,7 +248,7 @@ export default function Pointage({ userId, onTimeUpdate }) {
         </div>
 
         <div style={styles.pointage.reminder}>
-          <strong>💡 Rappel:</strong> Horaires 9h-12h et 14h-18h (pause déj 12h-14h auto). Tolérance {attendanceRules?.tolerance_minutes || 5}min.
+          <strong>💡 Rappel:</strong> Horaires 9h-12h et 14h-18h (pause déj 12h-14h). Tolérance 5min.
         </div>
       </div>
     </div>

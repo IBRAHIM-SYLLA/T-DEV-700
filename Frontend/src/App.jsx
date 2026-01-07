@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Login from "./pages/Login";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
@@ -6,18 +5,48 @@ import ManagerDashboard from "../manager/pages/ManagerDashboard";
 import AdminDashboard from "../admin/pages/AdminDashboard";
 
 function App() {
-  const [auth, setAuth] = useState({ user: null, token: null });
+  const [auth, setAuth] = useState(() => {
+    try {
+      const raw = localStorage.getItem("tm_auth");
+      if (!raw) return { user: null, token: null };
+      const parsed = JSON.parse(raw);
+      if (!parsed?.token || !parsed?.user) return { user: null, token: null };
+      return { user: parsed.user, token: parsed.token };
+    } catch {
+      return { user: null, token: null };
+    }
+  });
 
   const handleLogin = ({ user, token }) => {
     setAuth({ user, token });
+    try {
+      localStorage.setItem("tm_auth", JSON.stringify({ user, token }));
+    } catch {
+      // ignore
+    }
   };
 
   const handleLogout = () => {
     setAuth({ user: null, token: null });
+    try {
+      localStorage.removeItem("tm_auth");
+    } catch {
+      // ignore
+    }
   };
 
   const handleUpdateUser = (updatedUser) => {
-    setAuth((prev) => ({ ...prev, user: updatedUser }));
+    setAuth((prev) => {
+      const next = { ...prev, user: updatedUser };
+      try {
+        if (next?.token && next?.user) {
+          localStorage.setItem("tm_auth", JSON.stringify({ user: next.user, token: next.token }));
+        }
+      } catch {
+        // ignore
+      }
+      return next;
+    });
   };
 
   // Role-based routing with database roles
