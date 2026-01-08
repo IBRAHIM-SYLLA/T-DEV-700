@@ -47,7 +47,7 @@ teamRouter.put("/:id", async (req: Request, res: Response) => {
 
 teamRouter.delete("/:id", async (req: Request, res: Response) => {
     try {
-        let teamId = Number.parseInt(req.params.id)
+        const teamId = Number.parseInt(req.params.id)
         await teamService.deleteTeam(teamId)
         res.status(201).json(`Equipe ${teamId} supprimé`);
     } catch (error) {

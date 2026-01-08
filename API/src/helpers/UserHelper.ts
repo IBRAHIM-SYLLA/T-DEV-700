@@ -88,7 +88,7 @@ export class UserHelper {
         user.phone_number = req.body.phone_number;
         user.team_id = req.body.team_id;
         user.role = req.body.role;
-        user.password = await this.hashString(req.body.password, 10);;
+        user.password = await this.hashString(req.body.password, 10);
         return user;
     }
 
