@@ -38,6 +38,8 @@ export async function apiFetch(path, { method = "GET", body, token, headers } = 
     body: body ? JSON.stringify(body) : undefined
   });
 
+  console.log(response);
+
   const data = await parseJsonSafely(response);
 
   if (!response.ok) {
