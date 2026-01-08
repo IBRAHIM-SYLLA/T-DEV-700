@@ -93,11 +93,11 @@ export class UserService {
         }
 
 
-        existing.first_name = req.first_name ?? existing.first_name;
-        existing.last_name = req.last_name ?? existing.last_name;
-        existing.email = req.email ?? existing.email;
-        existing.phone_number = req.phone_number ?? existing.phone_number;
-        existing.role = req.role ?? existing.role;
+        existing.first_name = req.body.first_name ?? existing.first_name;
+        existing.last_name = req.bodylast_name ?? existing.last_name;
+        existing.email = req.body.email ?? existing.email;
+        existing.phone_number = req.body.phone_number ?? existing.phone_number;
+        existing.role = req.body.role ?? existing.role;
 
         if (req.password) {
             existing.password = await this.userHelper.hashString(req.password, 10);

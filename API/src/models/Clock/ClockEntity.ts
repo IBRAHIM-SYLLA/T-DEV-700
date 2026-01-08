@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, JoinColumn, UpdateDateColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn, JoinColumn } from "typeorm";
 import { UserEntity } from "../User/UserEntity";
 
 @Entity("clocks")
@@ -14,7 +14,7 @@ export class ClockEntity {
     departure_time!: Date | null;
 
     @ManyToOne(() => UserEntity, user => user.clocks, { onDelete: "CASCADE" })
-    @JoinColumn({ name: "user_id" }) 
+    @JoinColumn({ name: "user_id" })
     user!: UserEntity;
 
     @CreateDateColumn()
