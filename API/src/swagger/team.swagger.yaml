@@ -1,0 +1,173 @@
+paths:
+  /:
+    get:
+      summary: Récupérer toutes les équipes
+      tags: [Teams]
+      responses:
+        "200":
+          description: Liste des équipes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Team"
+        "500":
+          description: Erreur interne du serveur
+
+    post:
+      summary: Créer une nouvelle équipe
+      tags: [Teams]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTeam"
+      responses:
+        "201":
+          description: Équipe créée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Team"
+        "500":
+          description: Erreur lors de la création de l’équipe
+
+  /{id}:
+    get:
+      summary: Récupérer une équipe par son ID
+      tags: [Teams]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Équipe trouvée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Team"
+        "500":
+          description: Erreur interne du serveur
+
+    put:
+      summary: Mettre à jour une équipe
+      tags: [Teams]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTeam"
+      responses:
+        "201":
+          description: Équipe mise à jour
+        "500":
+          description: Erreur lors de la mise à jour de l’équipe
+
+    delete:
+      summary: Supprimer une équipe
+      tags: [Teams]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "201":
+          description: Équipe supprimée
+        "500":
+          description: Erreur lors de la suppression de l’équipe
+
+  /manager/{managerId}:
+    get:
+      summary: Récupérer toutes les équipes d’un manager avec leurs membres
+      tags: [Teams]
+      parameters:
+        - in: path
+          name: managerId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Liste des équipes du manager
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Team"
+        "400":
+          description: managerId invalide
+        "500":
+          description: Erreur serveur
+
+components:
+  schemas:
+    Team:
+      type: object
+      properties:
+        team_id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Équipe Backend
+        manager_id:
+          type: integer
+          example: 42
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+
+    User:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          example: 10
+        firstname:
+          type: string
+          example: Jean
+        lastname:
+          type: string
+          example: Dupont
+        email:
+          type: string
+          example: jean.dupont@mail.com
+
+    CreateTeam:
+      type: object
+      required:
+        - name
+        - manager_id
+      properties:
+        name:
+          type: string
+          example: Nouvelle équipe
+        manager_id:
+          type: integer
+          example: 42
+
+    UpdateTeam:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Équipe modifiée
+        manager_id:
+          type: integer
+          example: 43

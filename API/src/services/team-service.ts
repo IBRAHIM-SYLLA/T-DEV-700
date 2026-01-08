@@ -29,6 +29,23 @@ export class TeamService {
         }
     }
 
+    /**
+     * Récupère toutes les équipes d'un manager avec leurs membres
+     */
+    async getTeamsByManager(managerId: number) {
+        return this.teamRepo.find({
+            where: {
+                manager: {
+                    user_id: managerId
+                }
+            },
+            relations: {
+                members: true,
+                manager: true
+            }
+        });
+    }
+
     async createTeam(req: any): Promise<TeamEntity> {
         const teamForCreate: TeamModel = this.teamHelper.teamModelByReqBody(req);
         let newTeam: TeamEntity = new TeamEntity();

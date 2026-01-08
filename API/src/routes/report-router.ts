@@ -2,6 +2,7 @@
 import express from "express";
 import { ReportKPI } from "../enums/report-kpi.enum";
 import { ReportService } from "../services/report-service";
+import { verifyManager, verifyToken } from "../utils/UserMiddleware";
 
 const reportRouter = express.Router();
 
@@ -15,7 +16,7 @@ const parseFilters = (query: any) => ({
 /**
  * 🌍 Global report (NO userId / teamId)
  */
-reportRouter.get("/", async (req, res) => {
+reportRouter.get("/", verifyToken, verifyManager, async (req, res) => {
     const { kpis, from, to } = req.query;
 
     if (!kpis) {
@@ -38,31 +39,31 @@ reportRouter.get("/", async (req, res) => {
 /**
  * KPI routes (WITH filters)
  */
-reportRouter.get("/total-worked-time", async (req, res) => {
+reportRouter.get("/total-worked-time", verifyToken, verifyManager, async (req, res) => {
     res.json({
         totalWorkedTime: await ReportService.getTotalWorkedTime(parseFilters(req.query))
     });
 });
 
-reportRouter.get("/average-worked-time", async (req, res) => {
+reportRouter.get("/average-worked-time", verifyToken, verifyManager, async (req, res) => {
     res.json({
         averageWorkedTime: await ReportService.getAverageWorkedTime(parseFilters(req.query))
     });
 });
 
-reportRouter.get("/late-rate", async (req, res) => {
+reportRouter.get("/late-rate", verifyToken, verifyManager, async (req, res) => {
     res.json({
         lateRate: await ReportService.getLateRate(parseFilters(req.query))
     });
 });
 
-reportRouter.get("/active-users", async (req, res) => {
+reportRouter.get("/active-users", verifyToken, verifyManager, async (req, res) => {
     res.json({
         activeUsers: await ReportService.getActiveUsers(parseFilters(req.query))
     });
 });
 
-reportRouter.get("/incomplete-clocks", async (req, res) => {
+reportRouter.get("/incomplete-clocks", verifyToken, verifyManager, async (req, res) => {
     res.json({
         incompleteClocks: await ReportService.getIncompleteClocks(parseFilters(req.query))
     });

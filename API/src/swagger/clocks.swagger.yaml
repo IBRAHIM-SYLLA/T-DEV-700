@@ -1,0 +1,58 @@
+paths:
+  /:
+    post:
+      tags:
+        - Clocks
+      summary: Pointer (entrée / sortie)
+      description: |
+        Permet à un utilisateur de pointer.
+        - Si aucun pointage ouvert n’existe → clock-in
+        - Si un pointage est déjà ouvert → clock-out
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+              properties:
+                id:
+                  type: integer
+                  description: ID de l’utilisateur
+                  example: 3
+      responses:
+        "200":
+          description: Pointage effectué avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  clock_id:
+                    type: integer
+                    example: 42
+                  user_id:
+                    type: integer
+                    example: 3
+                  arrival_time:
+                    type: string
+                    format: date-time
+                    example: 2026-01-08T08:00:00Z
+                  departure_time:
+                    type: string
+                    format: date-time
+                    nullable: true
+                    example: 2026-01-08T17:00:00Z
+        "400":
+          description: Erreur de pointage
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Aucun utilisateur trouvé ou pointage invalide

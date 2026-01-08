@@ -6,7 +6,7 @@
     "moduleResolution": "node",
     "rootDir": ".",
     "outDir": "dist",
-    "strict": false,    
+    "strict": false,
     "strictPropertyInitialization": false,
     "noImplicitAny": false,
     "esModuleInterop": true,
@@ -19,6 +19,10 @@
       "node",
       "jest"
     ],
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/types"
+    ]
   },
   "include": [
     "src/**/*",
