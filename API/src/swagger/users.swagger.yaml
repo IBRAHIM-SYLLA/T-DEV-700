@@ -1,0 +1,203 @@
+paths:
+  /:
+    get:
+      summary: Récupérer tous les utilisateurs
+      tags: [Users]
+      responses:
+        "200":
+          description: Liste des utilisateurs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        "500":
+          description: Erreur interne du serveur
+
+    post:
+      summary: Créer un utilisateur
+      tags: [Users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUser"
+      responses:
+        "201":
+          description: Utilisateur créé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "500":
+          description: Erreur lors de la création de l’utilisateur
+
+  /{id}:
+    get:
+      summary: Récupérer un utilisateur par son ID
+      tags: [Users]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Utilisateur trouvé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "500":
+          description: Erreur interne du serveur
+
+    put:
+      summary: Mettre à jour un utilisateur
+      tags: [Users]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUser"
+      responses:
+        "201":
+          description: Utilisateur mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "500":
+          description: Erreur lors de la mise à jour de l’utilisateur
+
+    delete:
+      summary: Supprimer un utilisateur
+      tags: [Users]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "201":
+          description: Utilisateur supprimé
+        "500":
+          description: Erreur lors de la suppression de l’utilisateur
+
+  /{id}/clocks:
+    get:
+      summary: Récupérer le résumé des pointages d’un utilisateur
+      tags: [Users]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Résumé des clocks de l’utilisateur
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClockSummary"
+        "400":
+          description: Requête invalide
+        "500":
+          description: Erreur interne du serveur
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          example: 1
+        firstname:
+          type: string
+          example: Jean
+        lastname:
+          type: string
+          example: Dupont
+        email:
+          type: string
+          example: jean.dupont@mail.com
+        role:
+          type: string
+          example: employee
+
+    CreateUser:
+      type: object
+      required:
+        - firstname
+        - lastname
+        - email
+      properties:
+        firstname:
+          type: string
+          example: Jean
+        lastname:
+          type: string
+          example: Dupont
+        email:
+          type: string
+          example: jean.dupont@mail.com
+        password:
+          type: string
+          example: password123
+        role:
+          type: string
+          example: employee
+
+    UpdateUser:
+      type: object
+      properties:
+        firstname:
+          type: string
+          example: Jean
+        lastname:
+          type: string
+          example: Martin
+        email:
+          type: string
+          example: jean.martin@mail.com
+        role:
+          type: string
+          example: manager
+
+    ClockSummary:
+      type: object
+      properties:
+        totalHours:
+          type: number
+          example: 160
+        clocks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Clock"
+
+    Clock:
+      type: object
+      properties:
+        clock_id:
+          type: integer
+          example: 10
+        arrival_time:
+          type: string
+          format: date-time
+          example: "2024-01-01T08:00:00Z"
+        departure_time:
+          type: string
+          format: date-time
+          example: "2024-01-01T17:00:00Z"

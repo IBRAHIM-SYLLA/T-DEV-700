@@ -1,247 +1,175 @@
 openapi: 3.0.0
 
 info:
-  title: "TimeManager API"
-  version: "1.0.0"
-  description: "API de gestion des pointages"
+  title: TimeManager API
+  description: API de gestion des utilisateurs, équipes et pointages
+  version: 1.0.0
 
-tags:
-  - name: Reports
-    description: Reporting and KPIs endpoints
+servers:
+  - url: http://localhost:5001
+    description: Serveur local
+
+# 🔐 Sécurité globale (JWT)
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []
+
+# 🏷️ Tags globaux
+# tags:
+#   - name: Auth
+#     description: Authentification et gestion des sessions
+#   - name: Users
+#     description: Gestion des utilisateurs
+#   - name: Teams
+#     description: Gestion des équipes
+#   - name: Clocks
+#     description: Gestion des pointages
+#   - name: Reports
+#     description: Reporting et indicateurs KPI
 
 paths:
+  # ===== AUTH =====
+  /api/auth/register:
+    post:
+      tags:
+        - Auth
+      description: Authentification et gestion des sessions
+      $ref: "./auth.yaml#/paths/~1register/post"
+
+  /api/auth/login:
+    post:
+      tags:
+        - Auth
+      description: Authentification et gestion des sessions
+      $ref: "./auth.yaml#/paths/~1login/post"
+
+  # ===== USERS =====
+  /api/users:
+    get:
+      tags:
+        - Users
+      description: Gestion des utilisateurs
+      $ref: "./users.yaml#/paths/~1/get"
+    post:
+      tags:
+        - Users
+      description: Gestion des utilisateurs
+      $ref: "./users.yaml#/paths/~1/post"
+
+  /api/users/{id}:
+    get:
+      tags:
+        - Users
+      description: Gestion des utilisateurs
+      $ref: "./users.yaml#/paths/~1{id}/get"
+    put:
+      tags:
+        - Users
+      description: Gestion des utilisateurs
+      $ref: "./users.yaml#/paths/~1{id}/put"
+    delete:
+      tags:
+        - Users
+      description: Gestion des utilisateurs
+      $ref: "./users.yaml#/paths/~1{id}/delete"
+
+  /api/users/{id}/clocks:
+    get:
+      tags:
+        - Users
+      description: Gestion des utilisateurs
+      $ref: "./users.yaml#/paths/~1{id}~1clocks/get"
+
+  # ===== TEAMS =====
+  /api/teams:
+    get:
+      tags:
+        - Teams
+      description: Gestion des équipes
+      $ref: "./teams.yaml#/paths/~1/get"
+    post:
+      tags:
+        - Teams
+      description: Gestion des équipes
+      $ref: "./teams.yaml#/paths/~1/post"
+
+  /api/teams/{id}:
+    get:
+      tags:
+        - Teams
+      description: Gestion des équipes
+      $ref: "./teams.yaml#/paths/~1{id}/get"
+    put:
+      tags:
+        - Teams
+      description: Gestion des équipes
+      $ref: "./teams.yaml#/paths/~1{id}/put"
+    delete:
+      tags:
+        - Teams
+      description: Gestion des équipes
+      $ref: "./teams.yaml#/paths/~1{id}/delete"
+
+  /api/teams/manager/{managerId}:
+    get:
+      tags:
+        - Teams
+      description: Gestion des équipes
+      $ref: "./teams.yaml#/paths/~1manager~1{managerId}/get"
+
+  # ===== CLOCKS =====
+  /api/clocks:
+    post:
+      tags:
+        - Clocks
+      description: Gestion des pointages
+      $ref: "./clocks.yaml#/paths/~1/post"
+
+  # ===== REPORTS =====
   /api/reports:
     get:
-      tags: [Reports]
-      summary: Get a global report based on the chosen KPIs
-      description: |
-        Returns aggregated KPIs for the whole system.
-        This endpoint is global and does NOT accept userId or teamId filters.
-      parameters:
-        - in: query
-          name: kpis
-          required: true
-          description: Comma-separated list of KPIs to include
-          schema:
-            type: string
-            example: total_worked_time,late_rate,active_users
-        - in: query
-          name: from
-          description: Start date
-          schema:
-            type: string
-            format: date-time
-            example: 2025-01-01T00:00:00Z
-        - in: query
-          name: to
-          description: End date
-          schema:
-            type: string
-            format: date-time
-            example: 2025-01-31T23:59:59Z
-      responses:
-        "200":
-          description: Global report result
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  totalWorkedTime:
-                    type: number
-                    example: 1240
-                  averageWorkedTime:
-                    type: number
-                    example: 7.3
-                  lateRate:
-                    type: number
-                    example: 12.5
-                  activeUsers:
-                    type: integer
-                    example: 18
-                  incompleteClocks:
-                    type: integer
-                    example: 6
-        "400":
-          description: Missing or invalid parameters
+      tags:
+        - Reports
+      description: Reporting et indicateurs KPI
+      $ref: "./reports.yaml#/paths/~1/get"
 
   /api/reports/total-worked-time:
     get:
-      tags: [Reports]
-      summary: Get total worked time
-      description: Returns the total worked time in hours.
-      parameters:
-        - in: query
-          name: userId
-          schema:
-            type: integer
-            example: 5
-        - in: query
-          name: teamId
-          schema:
-            type: integer
-            example: 2
-        - in: query
-          name: from
-          schema:
-            type: string
-            format: date-time
-        - in: query
-          name: to
-          schema:
-            type: string
-            format: date-time
-      responses:
-        "200":
-          description: Total worked time
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  totalWorkedTime:
-                    type: number
-                    example: 42.5
+      tags:
+        - Reports
+      description: Reporting et indicateurs KPI
+      $ref: "./reports.yaml#/paths/~1total-worked-time/get"
 
   /api/reports/average-worked-time:
     get:
-      tags: [Reports]
-      summary: Get average worked time per active user
-      description: Returns the average worked time per active user in hours.
-      parameters:
-        - in: query
-          name: userId
-          schema:
-            type: integer
-        - in: query
-          name: teamId
-          schema:
-            type: integer
-        - in: query
-          name: from
-          schema:
-            type: string
-            format: date-time
-        - in: query
-          name: to
-          schema:
-            type: string
-            format: date-time
-      responses:
-        "200":
-          description: Average worked time
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  averageWorkedTime:
-                    type: number
-                    example: 7.4
+      tags:
+        - Reports
+      description: Reporting et indicateurs KPI
+      $ref: "./reports.yaml#/paths/~1average-worked-time/get"
 
   /api/reports/late-rate:
     get:
-      tags: [Reports]
-      summary: Get late arrival rate
-      description: |
-        Returns the percentage of late arrivals.
-        A clock is considered late if arrival_time is after the configured limit hour.
-      parameters:
-        - in: query
-          name: userId
-          schema:
-            type: integer
-        - in: query
-          name: teamId
-          schema:
-            type: integer
-        - in: query
-          name: from
-          schema:
-            type: string
-            format: date-time
-        - in: query
-          name: to
-          schema:
-            type: string
-            format: date-time
-      responses:
-        "200":
-          description: Late rate percentage
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  lateRate:
-                    type: number
-                    example: 15.2
+      tags:
+        - Reports
+      description: Reporting et indicateurs KPI
+      $ref: "./reports.yaml#/paths/~1late-rate/get"
 
   /api/reports/active-users:
     get:
-      tags: [Reports]
-      summary: Get active users count
-      description: Returns the number of users having at least one clock in the period.
-      parameters:
-        - in: query
-          name: teamId
-          schema:
-            type: integer
-            example: 1
-        - in: query
-          name: from
-          schema:
-            type: string
-            format: date-time
-        - in: query
-          name: to
-          schema:
-            type: string
-            format: date-time
-      responses:
-        "200":
-          description: Active users count
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  activeUsers:
-                    type: integer
-                    example: 8
+      tags:
+        - Reports
+      description: Reporting et indicateurs KPI
+      $ref: "./reports.yaml#/paths/~1active-users/get"
 
   /api/reports/incomplete-clocks:
     get:
-      tags: [Reports]
-      summary: Get incomplete clocks
-      description: Returns the number of clocks without a departure time.
-      parameters:
-        - in: query
-          name: userId
-          schema:
-            type: integer
-        - in: query
-          name: teamId
-          schema:
-            type: integer
-        - in: query
-          name: from
-          schema:
-            type: string
-            format: date-time
-        - in: query
-          name: to
-          schema:
-            type: string
-            format: date-time
-      responses:
-        "200":
-          description: Incomplete clocks count
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  incompleteClocks:
-                    type: integer
-                    example: 3
+      tags:
+        - Reports
+      description: Reporting et indicateurs KPI
+      $ref: "./reports.yaml#/paths/~1incomplete-clocks/get"

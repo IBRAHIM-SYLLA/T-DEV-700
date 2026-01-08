@@ -1,6 +1,7 @@
 import express, { Request, Response, Router } from "express";
 import { UserService } from "../services/user-service";
 import { ClockService } from "../services/clock-service";
+import { verifyManager, verifyToken } from "../utils/UserMiddleware";
 
 const userRouter: Router = express.Router();
 
@@ -25,7 +26,7 @@ userRouter.get("/", async (req: Request, res: Response) => {
  * @route GET /users/:id
  * @desc Récupère un utilisateur par son id
  */
-userRouter.get("/:id", async (req: Request, res: Response) => {
+userRouter.get("/:id", verifyToken, verifyManager, async (req: Request, res: Response) => {
     try {
         const userId: number = Number.parseInt(req.params.id);
         const user = await userService.getUserById(userId);
@@ -57,7 +58,7 @@ userRouter.put('/:id', async (req: Request, res: Response) => {
     }
 });
 
-userRouter.delete('/:id', async (req: Request, res: Response) => {
+userRouter.delete('/:id', verifyToken, verifyManager, async (req: Request, res: Response) => {
     try {
         const userId: number = Number.parseInt(req.params.id);
         await userService.deleteUser(userId);
@@ -71,9 +72,9 @@ userRouter.delete('/:id', async (req: Request, res: Response) => {
 /**
  * GET /users/:id/clocks
  */
-userRouter.get("/:id/clocks", async (req: Request, res: Response) => {
+userRouter.get("/:id/clocks", verifyToken, async (req: Request, res: Response) => {
     try {
-        const userId = Number(req.params.id);
+        const userId = req.user!.user_id;
         const clocks = await clockService.getUserClocksSummary(userId);
         res.status(200).json(clocks);
     } catch (error: any) {
