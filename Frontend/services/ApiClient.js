@@ -1,7 +1,14 @@
 const DEFAULT_BASE_URL = "http://localhost:5001";
 
 function getBaseUrl() {
-  const fromEnv = (import.meta?.env?.VITE_API_URL || "").trim();
+  const fromEnvRaw = (import.meta?.env?.VITE_API_URL || "").trim();
+
+  // In docker-compose env files, placeholders like ${BACKEND_PORT} are not
+  // expanded for the browser. Treat those values as invalid.
+  const looksUnexpanded = fromEnvRaw.includes("${") || fromEnvRaw.includes("}");
+  const looksHttp = /^https?:\/\//i.test(fromEnvRaw);
+  const fromEnv = !fromEnvRaw || looksUnexpanded || !looksHttp ? "" : fromEnvRaw;
+
   const baseUrl = fromEnv || DEFAULT_BASE_URL;
   return baseUrl.replace(/\/$/, "");
 }
