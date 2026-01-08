@@ -3,74 +3,74 @@ import styles from "../style/style.ts";
 import AuthApi from "../../services/AuthApi";
 
 // Database users based on init.sql
-const databaseUsers = [
-  { 
-    userId: 1,
-    firstName: "Admin", 
-    lastName: "System", 
-    email: "admin@timemanager.com", 
-    phoneNumber: "+33612345678", 
-    username: "admin@timemanager.com", 
-    password: "admin123", 
-    teamId: null, 
-    role: "super_admin" 
-  },
-  { 
-    userId: 2,
-    firstName: "Alice", 
-    lastName: "Dupont", 
-    email: "alice.dupont@timemanager.com", 
-    phoneNumber: "+33623456789", 
-    username: "alice.dupont@timemanager.com", 
-    password: "password123", 
-    teamId: null, 
-    role: "manager" 
-  },
-  { 
-    userId: 3,
-    firstName: "Bruno", 
-    lastName: "Martin", 
-    email: "bruno.martin@timemanager.com", 
-    phoneNumber: "+33634567890", 
-    username: "bruno.martin@timemanager.com", 
-    password: "securepass", 
-    teamId: 1, 
-    role: "employee" 
-  },
-  { 
-    userId: 4,
-    firstName: "Claire", 
-    lastName: "Bernard", 
-    email: "claire.bernard@timemanager.com", 
-    phoneNumber: "+33645678901", 
-    username: "claire.bernard@timemanager.com", 
-    password: "azerty2025", 
-    teamId: 1, 
-    role: "employee" 
-  },
-  { 
-    userId: 5,
-    firstName: "Son", 
-    lastName: "Goku", 
-    email: "songoku@timemanager.com", 
-    phoneNumber: "+33656789012", 
-    username: "songoku@timemanager.com", 
-    password: "kamehameha", 
-    teamId: 2, 
-    role: "employee" 
-  },
-  { 
-    userId: 6,
-    firstName: "David", 
-    lastName: "Leroy", 
-    email: "david.leroy@timemanager.com", 
-    phoneNumber: "+33667890123", 
-    username: "david.leroy@timemanager.com", 
-    password: "mypassword", 
-    teamId: 2, 
-    role: "employee" 
-  }
-];
+// const databaseUsers = [
+//   { 
+//     userId: 1,
+//     firstName: "Admin", 
+//     lastName: "System", 
+//     email: "admin@timemanager.com", 
+//     phoneNumber: "+33612345678", 
+//     username: "admin@timemanager.com", 
+//     password: "admin123", 
+//     teamId: null, 
+//     role: "super_admin" 
+//   },
+//   { 
+//     userId: 2,
+//     firstName: "Alice", 
+//     lastName: "Dupont", 
+//     email: "alice.dupont@timemanager.com", 
+//     phoneNumber: "+33623456789", 
+//     username: "alice.dupont@timemanager.com", 
+//     password: "password123", 
+//     teamId: null, 
+//     role: "manager" 
+//   },
+//   { 
+//     userId: 3,
+//     firstName: "Bruno", 
+//     lastName: "Martin", 
+//     email: "bruno.martin@timemanager.com", 
+//     phoneNumber: "+33634567890", 
+//     username: "bruno.martin@timemanager.com", 
+//     password: "securepass", 
+//     teamId: 1, 
+//     role: "employee" 
+//   },
+//   { 
+//     userId: 4,
+//     firstName: "Claire", 
+//     lastName: "Bernard", 
+//     email: "claire.bernard@timemanager.com", 
+//     phoneNumber: "+33645678901", 
+//     username: "claire.bernard@timemanager.com", 
+//     password: "azerty2025", 
+//     teamId: 1, 
+//     role: "employee" 
+//   },
+//   { 
+//     userId: 5,
+//     firstName: "Son", 
+//     lastName: "Goku", 
+//     email: "songoku@timemanager.com", 
+//     phoneNumber: "+33656789012", 
+//     username: "songoku@timemanager.com", 
+//     password: "kamehameha", 
+//     teamId: 2, 
+//     role: "employee" 
+//   },
+//   { 
+//     userId: 6,
+//     firstName: "David", 
+//     lastName: "Leroy", 
+//     email: "david.leroy@timemanager.com", 
+//     phoneNumber: "+33667890123", 
+//     username: "david.leroy@timemanager.com", 
+//     password: "mypassword", 
+//     teamId: 2, 
+//     role: "employee" 
+//   }
+// ];
 
 export default function Login({ onLogin }) {
   const [username, setUsername] = useState("");
@@ -144,23 +144,6 @@ export default function Login({ onLogin }) {
           </button>
         </form>
         {error && <div style={styles.login.errorMessage}>{error}</div>}
-        <div style={styles.login.demoAccounts}>
-          <p style={styles.login.demoTitle}>Comptes de démonstration :</p>
-          <div style={styles.login.demoList}>
-            <p style={styles.login.demoItem}>
-              <strong>Super Admin:</strong> admin@timemanager.com / admin123
-            </p>
-            <p style={styles.login.demoItem}>
-              <strong>Manager:</strong> alice.dupont@timemanager.com / password123
-            </p>
-            <p style={styles.login.demoItem}>
-              <strong>Employé:</strong> bruno.martin@timemanager.com / securepass
-            </p>
-            <p style={styles.login.demoItem}>
-              <strong>Employé:</strong> songoku@timemanager.com / kamehameha
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   );
