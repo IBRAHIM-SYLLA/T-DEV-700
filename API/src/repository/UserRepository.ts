@@ -93,7 +93,7 @@ export class UserRepository {
      * @returns  Promise<UserModel>
      */
     async updateUser(user: UserModel, userId: number): Promise<UserModel> {
-        let checkUser: UserModel = await this.getUserById(userId);
+        const checkUser: UserModel = await this.getUserById(userId);
         if (checkUser.user_id > 0) {
             const params = [
                 user.first_name,

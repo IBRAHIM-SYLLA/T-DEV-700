@@ -17,7 +17,7 @@ const clockService = new ClockService();
 clockRouter.post("/", async (req: Request, res: Response) => {
     try {
         // Ex: injecté par ton middleware JWT
-        let userId: number = Number.parseInt(req.body.id);
+        const userId: number = Number.parseInt(req.body.id);
 
         const clock = await clockService.clockInOrOut(userId);
         res.status(200).json(clock);

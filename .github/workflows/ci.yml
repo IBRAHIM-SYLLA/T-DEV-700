@@ -95,8 +95,7 @@ jobs:
 
       - name: Lancement du lint
         working-directory: ./API
-        run: npm run lint || echo "⚠️ Aucun script lint défini"
-        continue-on-error: true
+        run: npm run lint
         
   docker-build:
     name: Build Docker Production

@@ -27,7 +27,7 @@ userRouter.get("/", async (req: Request, res: Response) => {
  */
 userRouter.get("/:id", async (req: Request, res: Response) => {
     try {
-        let userId: number = Number.parseInt(req.params.id);
+        const userId: number = Number.parseInt(req.params.id);
         const user = await userService.getUserById(userId);
         res.status(200).json(user);
     } catch (error) {
@@ -48,8 +48,7 @@ userRouter.post('/', async (req: Request, res: Response) => {
 
 userRouter.put('/:id', async (req: Request, res: Response) => {
     try {
-        const saltRounds = 10;
-        let userId: number = Number.parseInt(req.params.id);
+        const userId: number = Number.parseInt(req.params.id);
         const user = await userService.updateUser(userId, req);
         res.status(201).json(user);
     } catch (err) {
@@ -60,7 +59,7 @@ userRouter.put('/:id', async (req: Request, res: Response) => {
 
 userRouter.delete('/:id', async (req: Request, res: Response) => {
     try {
-        let userId: number = Number.parseInt(req.params.id);
+        const userId: number = Number.parseInt(req.params.id);
         await userService.deleteUser(userId);
         res.status(201).json(`Utilisateur ${userId} supprimé`);
     } catch (err) {

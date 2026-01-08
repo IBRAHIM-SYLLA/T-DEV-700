@@ -30,24 +30,24 @@ export class TeamService {
     }
 
     async createTeam(req: any): Promise<TeamEntity> {
-        let teamForCreate: TeamModel = this.teamHelper.teamModelByReqBody(req);
+        const teamForCreate: TeamModel = this.teamHelper.teamModelByReqBody(req);
         let newTeam: TeamEntity = new TeamEntity();
         if (teamForCreate) {
-            let checkTeam = await this.teamRepo.findOneBy({
+            const checkTeam = await this.teamRepo.findOneBy({
                 name: teamForCreate.name
             });
             if (checkTeam) {
                 throw new Error(`L'équipe ${teamForCreate.name} existe déja !`);
             }
             else {
-                let manager = teamForCreate.manager_id ? await this.userRepo.findOneBy({
+                const manager = teamForCreate.manager_id ? await this.userRepo.findOneBy({
                     user_id: teamForCreate.manager_id
                 }) : null;
                 if (!manager) {
                     throw new Error("Aucun Manager pour cet équipe");
                 }
                 else {
-                    let teamEntity: TeamEntity = new TeamEntity();
+                    const teamEntity: TeamEntity = new TeamEntity();
                     teamEntity.name = teamForCreate.name;
                     teamEntity.description = teamForCreate.description;
                     teamEntity.manager = manager;
