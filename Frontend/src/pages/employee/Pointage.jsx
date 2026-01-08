@@ -27,7 +27,7 @@ const formatDuration = (hours) => {
   return `${h}h ${m.toString().padStart(2, '0')}m`;
 };
 
-export default function Pointage({ userId, onTimeUpdate }) {
+export default function Pointage({ userId, token, onTimeUpdate }) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [todayClock, setTodayClock] = useState(null);
   const [canClockIn, setCanClockIn] = useState(false);
@@ -41,7 +41,7 @@ export default function Pointage({ userId, onTimeUpdate }) {
   // Charger les données initiales
   useEffect(() => {
     loadUserData();
-  }, [CURRENT_USER_ID]);
+  }, [CURRENT_USER_ID, token]);
 
   // Mettre à jour l'horloge chaque seconde
   useEffect(() => {
@@ -62,7 +62,7 @@ export default function Pointage({ userId, onTimeUpdate }) {
       setLoading(true);
 
       // Récupérer les pointages réels depuis l'API
-      const clocks = await ClocksApi.listForUser(CURRENT_USER_ID);
+      const clocks = await ClocksApi.listForUser(CURRENT_USER_ID, { token });
 
       // Vérifier les possibilités de pointage
       const clockStatus = AttendanceService.canClockNow(CURRENT_USER_ID, clocks);
@@ -98,7 +98,7 @@ export default function Pointage({ userId, onTimeUpdate }) {
   const handleClockIn = async () => {
     try {
       setLoading(true);
-      const newClock = await ClocksApi.toggle(CURRENT_USER_ID);
+      const newClock = await ClocksApi.toggle(CURRENT_USER_ID, { token });
       setTodayClock(newClock);
       setCanClockIn(false);
       setCanClockOut(true);
@@ -128,7 +128,7 @@ export default function Pointage({ userId, onTimeUpdate }) {
   const handleClockOut = async () => {
     try {
       setLoading(true);
-      const updatedClock = await ClocksApi.toggle(CURRENT_USER_ID);
+      const updatedClock = await ClocksApi.toggle(CURRENT_USER_ID, { token });
       setTodayClock(updatedClock);
       setCanClockIn(false);
       setCanClockOut(false);
