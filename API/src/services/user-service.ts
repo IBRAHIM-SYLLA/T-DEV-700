@@ -4,6 +4,9 @@ import { AppDataSource } from "../config/database";
 import { UserModel } from "../models/User/user.model";
 import { TeamEntity } from "../models/Team/TeamEntity";
 import { UserLight } from "../models/User/user-light.model";
+import { EmailService } from "./email-service";
+import { PasswordResetService } from "./password-reset-service";
+import bcrypt from "bcrypt";
 
 export class UserService {
     userHelper: UserHelper = new UserHelper();
@@ -40,7 +43,7 @@ export class UserService {
      * @description Creer un utilisateur et le renvoie
      * @returns  Promise<UserModel>
      */
-    async createUser(req: any): Promise<UserEntity> {
+   async createUser(req: any): Promise<UserEntity> {
         const userToCreate: UserModel = await this.userHelper.userModelByReqBody(req);
         const existingUser = await this.userRepo.findOneBy({
             email: userToCreate.email
@@ -60,19 +63,49 @@ export class UserService {
                 throw new Error(`Aucune équipe trouvée avec l'id ${userToCreate.team_id}.`);
             }
         }
-        const userEntity = new UserEntity();
-        userEntity.first_name = userToCreate.first_name;
-        userEntity.last_name = userToCreate.last_name;
-        userEntity.email = userToCreate.email;
-        userEntity.phone_number = userToCreate.phone_number;
-        userEntity.password = userToCreate.password;
-        userEntity.role = userToCreate.role as any;
-        userEntity.team = team;
 
-        const newUser = await this.userRepo.save(userEntity);
+    // Déterminer le mot de passe : celui fourni ou un temporaire
+    let plainPassword: string;
+    let isTemporary = false;
 
-        return newUser;
+    if (userToCreate.password && userToCreate.password.trim() !== '') {
+        // Utiliser le mot de passe fourni
+        plainPassword = userToCreate.password;
+        isTemporary = false;
+    } else {
+        // Générer un mot de passe temporaire
+        plainPassword = PasswordResetService.generateTemporaryPassword();
+        isTemporary = true;
     }
+
+    // Hasher le mot de passe
+    const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
+    const userEntity = new UserEntity();
+    userEntity.first_name = userToCreate.first_name;
+    userEntity.last_name = userToCreate.last_name;
+    userEntity.email = userToCreate.email;
+    userEntity.phone_number = userToCreate.phone_number;
+    userEntity.password = hashedPassword;
+    userEntity.role = userToCreate.role as any;
+    userEntity.team = team;
+
+    const newUser = await this.userRepo.save(userEntity);
+
+    // Envoyer l'email uniquement si c'est un mot de passe temporaire
+    if (isTemporary) {
+        try {
+            await EmailService.sendWelcomeEmail(newUser, plainPassword);
+            console.log(`✅ Utilisateur créé avec mot de passe temporaire : ${newUser.email}`);
+        } catch (emailError) {
+            console.error("⚠️ Utilisateur créé mais email non envoyé:", emailError);
+        }
+    } else {
+        console.log(`✅ Utilisateur créé avec mot de passe fourni : ${newUser.email}`);
+    }
+
+    return newUser;
+}
 
 
     /**

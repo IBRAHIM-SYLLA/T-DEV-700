@@ -131,13 +131,17 @@ export default function Login({ onLogin }) {
               required
               autoComplete="current-password"
             />
-            <button 
-              type="button" 
+            <a
+              href="/forgot-password"
               style={styles.login.forgotPasswordBtn}
-              onClick={() => alert("Fonctionnalité à venir")}
+              onClick={(e) => {
+                e.preventDefault();
+                window.location.href = "/forgot-password";
+              }}
             >
               Mot de passe oublié ?
-            </button>
+            </a>
+
           </div>
           <button type="submit" style={styles.login.loginButton}>
             {loading ? "Connexion..." : "Se connecter"}

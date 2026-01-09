@@ -6,6 +6,7 @@ import "reflect-metadata";
 import { UserEntity } from "../models/User/UserEntity";
 import { TeamEntity } from "../models/Team/TeamEntity";
 import { ClockEntity } from "../models/Clock/ClockEntity";
+import { PasswordResetEntity } from "../models/PasswordReset/PasswordResetEntity";
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
@@ -22,14 +23,15 @@ export const pool = mariadb.createPool({
 
 export const AppDataSource = new DataSource({
     type: "mariadb",
-    host: process.env.DB_HOST,
+    host: process.env.DB_HOST || "localhost",
     port: Number(process.env.DB_PORT) || 3306,
     username: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
-    synchronize: false,  
-    logging: true,
-    entities: [UserEntity, TeamEntity, ClockEntity],
+    synchronize: true,  
+    logging: false,
+    entities: [UserEntity, TeamEntity, ClockEntity, PasswordResetEntity],
+    subscribers: [],
     migrations: ["src/migrations/**/*.ts"],
 });
 

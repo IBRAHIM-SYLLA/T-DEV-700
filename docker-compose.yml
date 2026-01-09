@@ -79,6 +79,19 @@ services:
     command: npm run dev -- --host
     networks:
       - timemanager_net
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: timemanager_mailpit
+    restart: always
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    networks:
+      - timemanager_net
 
 networks:
   timemanager_net:

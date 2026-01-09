@@ -1,10 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Login from "./pages/Login";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
 import ManagerDashboard from "../manager/pages/ManagerDashboard";
 import AdminDashboard from "../admin/pages/AdminDashboard";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 function App() {
+  const [currentPage, setCurrentPage] = useState("login");
   const [auth, setAuth] = useState(() => {
     try {
       const raw = localStorage.getItem("tm_auth");
@@ -17,10 +20,38 @@ function App() {
     }
   });
 
+  // Gérer le routing basique
+  useEffect(() => {
+    const path = window.location.pathname;
+    if (path === "/forgot-password") {
+      setCurrentPage("forgot-password");
+    } else if (path === "/reset-password" || window.location.search.includes("token=")) {
+      setCurrentPage("reset-password");
+    } else {
+      setCurrentPage("login");
+    }
+       // Écouter les changements d'URL
+    const handlePopState = () => {
+      const newPath = window.location.pathname;
+      if (newPath === "/forgot-password") {
+        setCurrentPage("forgot-password");
+      } else if (newPath === "/reset-password") {
+        setCurrentPage("reset-password");
+      } else {
+        setCurrentPage("login");
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   const handleLogin = ({ user, token }) => {
     setAuth({ user, token });
     try {
       localStorage.setItem("tm_auth", JSON.stringify({ user, token }));
+      window.history.pushState({}, "", "/");
+      setCurrentPage("dashboard");
     } catch {
       // ignore
     }
@@ -30,6 +61,8 @@ function App() {
     setAuth({ user: null, token: null });
     try {
       localStorage.removeItem("tm_auth");
+      window.history.pushState({}, "", "/");
+      setCurrentPage("login");
     } catch {
       // ignore
     }
@@ -106,15 +139,26 @@ function App() {
     }
   };
 
-  return (
-    <div className="app">
-      {!auth.user ? (
-        <Login onLogin={handleLogin} />
-      ) : (
-        renderDashboard()
-      )}
-    </div>
-  );
+
+  // Router logic
+  const renderPage = () => {
+    // Si l'utilisateur est connecté et qu'il n'est pas sur une page publique
+    if (auth.user && currentPage !== "forgot-password" && currentPage !== "reset-password") {
+      return renderDashboard();
+    }
+
+    // Pages publiques
+    switch (currentPage) {
+      case "forgot-password":
+        return <ForgotPassword />;
+      case "reset-password":
+        return <ResetPassword />;
+      default:
+        return <Login onLogin={handleLogin} />;
+    }
+  };
+
+  return <div className="app">{renderPage()}</div>;
 }
 
 export default App;
