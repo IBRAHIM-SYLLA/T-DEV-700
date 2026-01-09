@@ -40,7 +40,7 @@ export const verifyManager = (
     return res.status(401).json({ message: "Non authentifié" });
   }
 
-  if (req.user.role !== "manager" && req.user.role !== "admin") {
+  if (req.user.role !== "manager" && req.user.role !== "super_admin") {
     return res.status(403).json({ message: "Accès manager requis" });
   }
 
@@ -57,7 +57,7 @@ export const verifyAdminRh = (
     return res.status(401).json({ message: "Non authentifié" });
   }
 
-  if (req.user.role !== "rh" && req.user.role !== "admin") {
+  if (req.user.role !== "rh" && req.user.role !== "super_admin") {
     return res.status(403).json({ message: "Accès RH où Admin requis" });
   }
 
