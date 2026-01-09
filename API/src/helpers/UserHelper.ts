@@ -1,6 +1,5 @@
 import { UserModel } from "../models/User/user.model";
 import bcrypt from 'bcrypt';
-import { UserEntity } from "../models/User/UserEntity";
 
 export class UserHelper {
 
