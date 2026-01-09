@@ -1,6 +1,7 @@
 import express, { Request, Response, Router } from "express";
 import { UserService } from "../services/user-service";
 import { ClockService } from "../services/clock-service";
+import { verifyAdminRh, verifyManager, verifyToken } from "../utils/UserMiddleware";
 
 const userRouter: Router = express.Router();
 
@@ -11,7 +12,7 @@ const clockService = new ClockService();
  * @route GET /users
  * @desc Récupère tous les utilisateurs
  */
-userRouter.get("/", async (req: Request, res: Response) => {
+userRouter.get("/", verifyToken, verifyAdminRh, async (req: Request, res: Response) => {
     try {
         const users = await userService.getAllUsers();
         res.status(200).json(users);
@@ -25,7 +26,7 @@ userRouter.get("/", async (req: Request, res: Response) => {
  * @route GET /users/:id
  * @desc Récupère un utilisateur par son id
  */
-userRouter.get("/:id", async (req: Request, res: Response) => {
+userRouter.get("/:id", verifyToken, verifyManager, async (req: Request, res: Response) => {
     try {
         const userId: number = Number.parseInt(req.params.id);
         const user = await userService.getUserById(userId);
@@ -36,7 +37,11 @@ userRouter.get("/:id", async (req: Request, res: Response) => {
     }
 });
 
-userRouter.post('/', async (req: Request, res: Response) => {
+/**
+ * @route POST /users/
+ * @desc Creer un utilisateur
+ */
+userRouter.post('/', verifyToken, verifyAdminRh, async (req: Request, res: Response) => {
     try {
         const user = await userService.createUser(req);
         res.status(201).json(user);
@@ -46,7 +51,11 @@ userRouter.post('/', async (req: Request, res: Response) => {
     }
 });
 
-userRouter.put('/:id', async (req: Request, res: Response) => {
+/**
+ * @route PUT /users/
+ * @desc Met à jour un utilisateur
+ */
+userRouter.put('/:id', verifyToken, async (req: Request, res: Response) => {
     try {
         const userId: number = Number.parseInt(req.params.id);
         const user = await userService.updateUser(userId, req);
@@ -57,7 +66,11 @@ userRouter.put('/:id', async (req: Request, res: Response) => {
     }
 });
 
-userRouter.delete('/:id', async (req: Request, res: Response) => {
+/**
+ * @route DELETE /users/
+ * @desc Supprime un utilisateur
+ */
+userRouter.delete('/:id', verifyToken, verifyManager, async (req: Request, res: Response) => {
     try {
         const userId: number = Number.parseInt(req.params.id);
         await userService.deleteUser(userId);
@@ -69,11 +82,12 @@ userRouter.delete('/:id', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /users/:id/clocks
+ * @route POST /users/:id/clocks
+ * @desc Creer un pointage
  */
-userRouter.get("/:id/clocks", async (req: Request, res: Response) => {
+userRouter.get("/:id/clocks", verifyToken, async (req: Request, res: Response) => {
     try {
-        const userId = Number(req.params.id);
+        const userId = req.user!.user_id;
         const clocks = await clockService.getUserClocksSummary(userId);
         res.status(200).json(clocks);
     } catch (error: any) {

@@ -1,7 +1,6 @@
 import { UserModel } from "../models/User/user.model";
 import bcrypt from 'bcrypt';
-import { UserEntity } from "../models/User/UserEntity";
-import { UserLight } from "../models/User/user-light.model";
+
 export class UserHelper {
 
     getReqAllUsers(): string {
@@ -95,23 +94,23 @@ export class UserHelper {
     /**
     * Convertit un UserEntity en UserLight (DTO public)
     */
-    toUserLight(user: UserEntity): UserLight {
-        const light = new UserLight();
+    // toUserLight(user: UserEntity): UserLight {
+    //     const light = new UserLight();
 
-        light.first_name = user.first_name;
-        light.last_name = user.last_name;
-        light.email = user.email;
-        light.phone_number = user.phone_number;
+    //     light.first_name = user.first_name;
+    //     light.last_name = user.last_name;
+    //     light.email = user.email;
+    //     light.phone_number = user.phone_number;
 
-        return light;
-    }
+    //     return light;
+    // }
 
-    /**
-     * Convertit une liste de UserEntity en UserLight[]
-     */
-    toUserLightArray(users: UserEntity[]): UserLight[] {
-        return users.map(user => this.toUserLight(user));
-    }
+    // /**
+    //  * Convertit une liste de UserEntity en UserLight[]
+    //  */
+    // toUserLightArray(users: UserEntity[]): UserLight[] {
+    //     return users.map(user => this.toUserLight(user));
+    // }
 
     async hashString(stringForHash: string, salt: number): Promise<string> {
         return await bcrypt.hash(stringForHash, salt);
