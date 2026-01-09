@@ -1,7 +1,6 @@
 import express, { Router, Request, Response } from "express";
 import { TeamService } from "../services/team-service";
 import { verifyAdminRh, verifyManager, verifyToken } from "../utils/UserMiddleware";
-import { log } from "console";
 
 const teamRouter: Router = express.Router();
 
