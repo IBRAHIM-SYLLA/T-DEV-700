@@ -24,6 +24,14 @@ export default function BaseSalaries({ token }) {
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
 
+  const [showTeamForm, setShowTeamForm] = useState(false);
+  const [teamName, setTeamName] = useState("");
+  const [teamDescription, setTeamDescription] = useState("");
+  const [teamManagerId, setTeamManagerId] = useState("");
+  const [teamSubmitting, setTeamSubmitting] = useState(false);
+  const [teamCreateError, setTeamCreateError] = useState(null);
+  const [teamCreatedMessage, setTeamCreatedMessage] = useState(null);
+
   const [showForm, setShowForm] = useState(false);
   const [editUser, setEditUser] = useState(null);
   const [createdCredentials, setCreatedCredentials] = useState(null);
@@ -49,14 +57,14 @@ export default function BaseSalaries({ token }) {
   }, []);
 
   const teamById = useMemo(() => new Map((teams || []).map((t) => [t.team_id, t])), [teams]);
-  const userById = useMemo(() => new Map((users || []).map((u) => [u.user_id, u])), [users]);
+  const managers = useMemo(() => (users || []).filter((u) => u.role === "manager"), [users]);
 
   const rows = useMemo(() => {
     return (users || [])
       .filter((u) => u.role !== "super_admin")
       .map((u) => {
         const team = u.team_id ? teamById.get(u.team_id) : null;
-        const manager = team?.manager_id ? userById.get(team.manager_id) : null;
+        const manager = team?.manager || null;
         const status = statusForUserToday();
         return {
           user: u,
@@ -65,7 +73,7 @@ export default function BaseSalaries({ token }) {
           status
         };
       });
-  }, [teamById, today, userById, users]);
+  }, [teamById, today, users]);
 
   const badgeStyle = (status) => {
     if (status === "Présent") return styles.history.statusBadgeComplete;
@@ -92,6 +100,15 @@ export default function BaseSalaries({ token }) {
     setEditUser(null);
     setCreatedCredentials(null);
     setShowForm(true);
+  };
+
+  const startAddTeam = () => {
+    setTeamCreateError(null);
+    setTeamCreatedMessage(null);
+    setTeamName("");
+    setTeamDescription("");
+    setTeamManagerId("");
+    setShowTeamForm(true);
   };
 
   const startEdit = (user) => {
@@ -123,6 +140,46 @@ export default function BaseSalaries({ token }) {
     await reload();
   };
 
+  const handleCreateTeam = async (e) => {
+    e.preventDefault();
+
+    const name = teamName.trim();
+    const description = teamDescription.trim();
+    const managerId = teamManagerId === "" ? null : Number(teamManagerId);
+
+    setTeamCreateError(null);
+    setTeamCreatedMessage(null);
+
+    if (!name) {
+      setTeamCreateError("Le nom de l’équipe est requis.");
+      return;
+    }
+
+    if (!managerId || Number.isNaN(managerId)) {
+      setTeamCreateError("Veuillez sélectionner un manager.");
+      return;
+    }
+
+    setTeamSubmitting(true);
+    try {
+      await TeamsApi.create(
+        {
+          name,
+          description: description || null,
+          manager_id: managerId
+        },
+        { token }
+      );
+      setShowTeamForm(false);
+      setTeamCreatedMessage(`Équipe « ${name} » créée.`);
+      await reload();
+    } catch (err) {
+      setTeamCreateError(err?.message || "Erreur lors de la création de l’équipe");
+    } finally {
+      setTeamSubmitting(false);
+    }
+  };
+
   return (
     <div style={styles.dashboard.main}>
       <div style={styles.dashboard.contentContainer}>
@@ -132,6 +189,9 @@ export default function BaseSalaries({ token }) {
             <button style={styles.profile.saveBtn} onClick={startAdd}>
               ➕ Ajouter salarié
             </button>
+            <button style={styles.profile.saveBtn} onClick={startAddTeam}>
+              ➕ Ajouter équipe
+            </button>
             <button style={styles.dashboard.editProfileBtn} onClick={handleExport}>
               📤 Exporter
             </button>
@@ -139,9 +199,83 @@ export default function BaseSalaries({ token }) {
         </div>
 
         <div style={{ padding: "0 24px 24px" }}>
+          {teamCreatedMessage && <div style={styles.profile.successMessage}>{teamCreatedMessage}</div>}
+
           {createdCredentials && (
             <div style={styles.profile.successMessage}>
               Utilisateur créé — Email: <strong>{createdCredentials.email}</strong> · Mot de passe temporaire: <strong>{createdCredentials.password}</strong>
+            </div>
+          )}
+
+          {showTeamForm && (
+            <div style={styles.profile.card}>
+              <div style={styles.profile.cardHeader}>
+                <div style={styles.profile.avatar}>👥</div>
+                <div style={styles.profile.userInfo}>
+                  <h3 style={styles.profile.userName}>Ajouter une équipe</h3>
+                </div>
+              </div>
+
+              <form style={styles.profile.form} onSubmit={handleCreateTeam}>
+                {teamCreateError && <div style={styles.login.errorMessage}>{teamCreateError}</div>}
+
+                <div style={styles.profile.formRow}>
+                  <div style={styles.profile.formGroup}>
+                    <label style={styles.profile.label}>Nom</label>
+                    <input
+                      style={styles.profile.input}
+                      value={teamName}
+                      onChange={(e) => setTeamName(e.target.value)}
+                      disabled={teamSubmitting}
+                    />
+                  </div>
+
+                  <div style={styles.profile.formGroup}>
+                    <label style={styles.profile.label}>Manager</label>
+                    <select
+                      style={styles.profile.input}
+                      value={teamManagerId}
+                      onChange={(e) => setTeamManagerId(e.target.value)}
+                      disabled={teamSubmitting}
+                    >
+                      <option value="">—</option>
+                      {managers.map((m) => (
+                        <option key={m.user_id} value={m.user_id}>
+                          {m.first_name} {m.last_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div style={styles.profile.formGroup}>
+                  <label style={styles.profile.label}>Description (optionnel)</label>
+                  <input
+                    style={styles.profile.input}
+                    value={teamDescription}
+                    onChange={(e) => setTeamDescription(e.target.value)}
+                    disabled={teamSubmitting}
+                  />
+                </div>
+
+                <div style={styles.profile.actions}>
+                  <button
+                    type="button"
+                    style={styles.profile.cancelBtn}
+                    onClick={() => {
+                      setShowTeamForm(false);
+                      setTeamCreateError(null);
+                      setTeamCreatedMessage(null);
+                    }}
+                    disabled={teamSubmitting}
+                  >
+                    Annuler
+                  </button>
+                  <button type="submit" style={styles.profile.saveBtn} disabled={teamSubmitting}>
+                    {teamSubmitting ? "Création..." : "Créer"}
+                  </button>
+                </div>
+              </form>
             </div>
           )}
 

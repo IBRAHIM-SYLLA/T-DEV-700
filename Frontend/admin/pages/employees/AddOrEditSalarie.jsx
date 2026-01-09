@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useState } from "react";
 import styles from "../../../src/style/style.ts";
-import { buildBaseEmail, ensureUniqueEmail } from "../../utils/email";
 
 export default function AddOrEditSalarie({
   mode,
@@ -16,18 +15,6 @@ export default function AddOrEditSalarie({
   const [teamId, setTeamId] = useState(initialUser?.team_id ?? "");
   const [phone, setPhone] = useState(initialUser?.phone_number || "");
   const [email, setEmail] = useState(initialUser?.email || "");
-
-  const existingEmails = useMemo(
-    () => (existingUsers || []).map((u) => u.email).filter(Boolean),
-    [existingUsers]
-  );
-
-  useEffect(() => {
-    if (mode === "edit") return;
-    const base = buildBaseEmail({ firstName, lastName, domain: "timemanager.com" });
-    const unique = ensureUniqueEmail(base, existingEmails);
-    setEmail(unique);
-  }, [existingEmails, firstName, lastName, mode]);
 
   const title = mode === "edit" ? "Modifier salarié" : "Ajouter salarié";
 
@@ -52,9 +39,7 @@ export default function AddOrEditSalarie({
         <div style={styles.profile.avatar}>➕</div>
         <div style={styles.profile.userInfo}>
           <h3 style={styles.profile.userName}>{title}</h3>
-          <div style={{ fontSize: "13px", color: "#64748b" }}>
-            Email auto: <strong>nom.prenom@timemanager.com</strong>
-          </div>
+          <div style={{ fontSize: "13px", color: "#64748b" }}>Email requis</div>
         </div>
       </div>
 
@@ -100,7 +85,7 @@ export default function AddOrEditSalarie({
               style={styles.profile.input}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              disabled={mode !== "edit"}
+              placeholder="email@domaine.com"
             />
           </div>
 
