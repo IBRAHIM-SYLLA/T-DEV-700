@@ -35,7 +35,7 @@ teamRouter.get("/manageTeams", verifyToken, verifyManager, async (req: Request, 
  * @route POST /teams/
  * @desc Creer un utilisateur
  */
-teamRouter.get("/", /*verifyToken, verifyAdminRh,*/ async (req: Request, res: Response) => {
+teamRouter.get("/", verifyToken, verifyAdminRh, async (req: Request, res: Response) => {
     try {
         const teams = await teamService.getAllTeams();
         res.status(200).json(teams);
