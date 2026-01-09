@@ -46,4 +46,20 @@ export const verifyManager = (
   next();
 };
 
+export const verifyAdminRh = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+
+  if (!req.user) {
+    return res.status(401).json({ message: "Non authentifié" });
+  }
+
+  if (req.user.role !== "rh" && req.user.role !== "admin") {
+    return res.status(403).json({ message: "Accès RH où Admin requis" });
+  }
+
+  next();
+};
 
