@@ -4,6 +4,9 @@ import UsersApi from "../../../services/UsersApi";
 import TeamsApi from "../../../services/TeamsApi";
 import ClocksApi from "../../../services/ClocksApi";
 import AttendanceService from "../../../services/AttendanceService";
+import { toUiUser } from "../../../services/mappers";
+
+const PRESENCE_REFRESH_MS = 60_000;
 
 export default function TableauDeBordRH({ token }) {
   const [loading, setLoading] = useState(true);
@@ -43,11 +46,47 @@ export default function TableauDeBordRH({ token }) {
   }, [token]);
 
   const { employees, managerById, teamById } = useMemo(() => {
-    const teamMap = new Map((teams || []).map((t) => [t.team_id, t]));
-    const userMap = new Map((users || []).map((u) => [u.user_id, u]));
+    const teamMap = new Map();
+    (teams || []).forEach((t) => {
+      const id = t?.team_id ?? t?.id;
+      if (id != null) teamMap.set(id, t);
+    });
+
+    const userMap = new Map();
+    const addUser = (candidate) => {
+      const u = toUiUser(candidate);
+      if (!u) return null;
+      if (u.user_id == null) return u;
+      if (!userMap.has(u.user_id)) userMap.set(u.user_id, u);
+      return userMap.get(u.user_id);
+    };
+
+    (users || []).forEach(addUser);
+    (teams || []).forEach((t) => {
+      if (t?.manager) addUser(t.manager);
+      (t?.members || []).forEach(addUser);
+    });
+
+    // Prefer team members for employees (works even if /api/users is "light")
+    const employeeById = new Map();
+    (teams || []).forEach((t) => {
+      const managerId = t?.manager_id ?? t?.manager?.user_id ?? null;
+      (t?.members || []).forEach((m) => {
+        const u = addUser(m);
+        if (!u || u.user_id == null) return;
+        if (managerId != null && u.user_id === managerId) return;
+        // If role is present, keep only employees; if missing, assume it's an employee.
+        if (u.role && u.role !== "employee") return;
+        employeeById.set(u.user_id, u);
+      });
+    });
+
+    const employees = employeeById.size
+      ? Array.from(employeeById.values())
+      : Array.from(userMap.values()).filter((u) => u.role === "employee");
 
     return {
-      employees: (users || []).filter((u) => u.role === "employee"),
+      employees,
       managerById: userMap,
       teamById: teamMap
     };
@@ -96,7 +135,7 @@ export default function TableauDeBordRH({ token }) {
     };
 
     loadPresence();
-    intervalId = setInterval(loadPresence, 7_200_000);
+    intervalId = setInterval(loadPresence, PRESENCE_REFRESH_MS);
     window.addEventListener("focus", onVisibilityOrFocus);
     document.addEventListener("visibilitychange", onVisibilityOrFocus);
 
@@ -155,7 +194,7 @@ export default function TableauDeBordRH({ token }) {
     rows.push(["date", "arrivee", "depart", "statut", "heures_travaillees"].join(";"));
 
     days.forEach((d) => {
-      const dayKey = d.toISOString().slice(0, 10);
+      const dayKey = AttendanceService.toIsoDateKey(d);
       const dayClocks = clocksByDay.get(dayKey) || [];
       const clock = dayClocks[0] || null;
 
