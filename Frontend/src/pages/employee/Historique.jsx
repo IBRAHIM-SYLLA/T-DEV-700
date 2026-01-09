@@ -3,7 +3,7 @@ import styles from "../../style/style.ts";
 import AttendanceService from "../../../services/AttendanceService";
 import ClocksApi from "../../../services/ClocksApi";
 
-export default function Historique({ timeData, userId }) {
+export default function Historique({ timeData, userId, token }) {
   const [selectedMonth, setSelectedMonth] = useState("Ce mois");
   const [historyRecords, setHistoryRecords] = useState([]);
   const [filteredRecords, setFilteredRecords] = useState([]);
@@ -43,25 +43,27 @@ export default function Historique({ timeData, userId }) {
       window.removeEventListener("focus", onVisibilityOrFocus);
       document.removeEventListener("visibilitychange", onVisibilityOrFocus);
     };
-  }, [selectedMonth, CURRENT_USER_ID]);
+  }, [selectedMonth, CURRENT_USER_ID, token]);
+  
 
   const loadAttendanceHistory = async () => {
     try {
       setLoading(true);
       
       // Récupérer les données
-      const clocks = await ClocksApi.listForUser(CURRENT_USER_ID);
+      const clocks = await ClocksApi.listForUser(CURRENT_USER_ID, { token });
       
       // Convertir les pointages en historique avec calculs
       const history = clocks
-        .filter(clock => clock.departure_time) // Seulement les journées complètes
         .map(clock => {
           const clockDate = AttendanceService.toIsoDateKey(clock.arrival_time);
           
           // Obtenir le statut détaillé
           const detailedStatus = AttendanceService.getClockDetailedStatus(clock, null);
 
-          const workedTotalMinutes = detailedStatus.workedHours?.totalMinutes || 0;
+          const workedTotalMinutes = clock.departure_time
+            ? (detailedStatus.workedHours?.totalMinutes || 0)
+            : (AttendanceService.calculateWorkedHours(clock.arrival_time, new Date()).totalMinutes || 0);
           const workedHours = workedTotalMinutes / 60;
           const overtimeHours = Math.max(0, workedHours - 7);
           
@@ -70,7 +72,7 @@ export default function Historique({ timeData, userId }) {
           const formattedDate = `${day}/${month}/${year}`;
           
           // Déterminer le statut avec vérification de la pause déjeuner
-          let status = 'À l\'heure';
+          let status = clock.departure_time ? 'À l\'heure' : 'En cours';
           let lateMinutes = 0;
           
           if (detailedStatus.arrivalStatus) {
@@ -88,7 +90,7 @@ export default function Historique({ timeData, userId }) {
           return {
             date: formattedDate,
             clockIn: (AttendanceService.toIsoTime(clock.arrival_time) || '--:--').substring(0, 5),
-            clockOut: (AttendanceService.toIsoTime(clock.departure_time) || '--:--').substring(0, 5),
+            clockOut: clock.departure_time ? (AttendanceService.toIsoTime(clock.departure_time) || '--:--').substring(0, 5) : '--:--',
             duration: workedHours || 0,
             overtime: overtimeHours,
             status: status,
@@ -224,12 +226,11 @@ export default function Historique({ timeData, userId }) {
                       <td style={styles.history.td}>
                         <span style={styles.mergeStyles(
                           styles.history.statusBadge,
-                          record.status.includes('À l\'heure') ? styles.history.statusBadgeComplete :
-                          styles.history.statusBadgeDelay
+                          String(record.status).startsWith('Retard') ? styles.history.statusBadgeDelay : styles.history.statusBadgeComplete
                         )}>
-                          {record.status.includes('Retard') ? 
-                            `⚠️ ${record.status} (+${record.lateMinutes}min)` : 
-                            '✅ À l\'heure'}
+                          {String(record.status).startsWith('Retard')
+                            ? `⚠️ ${record.status} (+${record.lateMinutes}min)`
+                            : (record.status === 'En cours' ? '🟦 En cours' : '✅ À l\'heure')}
                         </span>
                       </td>
                     </tr>

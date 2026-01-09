@@ -1,5 +1,9 @@
 import { apiFetch } from "./ApiClient";
 
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
+
 function toIsoDateKey(value) {
   if (!value) return null;
   const date = new Date(value);
@@ -7,7 +11,8 @@ function toIsoDateKey(value) {
     if (typeof value === "string" && value.length >= 10) return value.slice(0, 10);
     return null;
   }
-  return date.toISOString().slice(0, 10);
+  // Local date key to avoid timezone shifting
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 }
 
 function toIsoTime(value) {
@@ -20,7 +25,8 @@ function toIsoTime(value) {
     }
     return null;
   }
-  return date.toISOString().slice(11, 19);
+  // Local time for UI display
+  return `${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}`;
 }
 
 function timeToMinutes(timeString) {
@@ -41,7 +47,7 @@ function isLate({ expectedArrivalTime = "09:00:00", actualArrivalTime, tolerance
 }
 
 function getTodayKey() {
-  return new Date().toISOString().slice(0, 10);
+  return toIsoDateKey(new Date());
 }
 
 function getTodayClock(clocks) {

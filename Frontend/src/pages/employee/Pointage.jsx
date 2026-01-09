@@ -23,7 +23,7 @@ const formatDate = (date) => {
 
 const formatDuration = (hours) => {
   const h = Math.floor(hours);
-  const m = Math.floor((hours - h) * 60);
+  const m = Math.floor((hours - h));
   return `${h}h ${m.toString().padStart(2, '0')}m`;
 };
 

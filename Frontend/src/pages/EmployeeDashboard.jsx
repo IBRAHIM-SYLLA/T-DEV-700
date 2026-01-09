@@ -40,13 +40,13 @@ export default function EmployeeDashboard({ user, token, onLogout, onUpdateUser 
 
     switch (activeTab) {
       case "Pointage":
-        return <Pointage userId={currentUser.userId || currentUser.user_id} onTimeUpdate={handleTimeUpdate} />;
+        return <Pointage userId={currentUser.userId || currentUser.user_id} token={token} onTimeUpdate={handleTimeUpdate} />;
       
       case "Mon résumé":
-        return <MonResume key={refreshKey} timeData={timeData} userId={currentUser.userId || currentUser.user_id} />;
+        return <MonResume key={refreshKey} timeData={timeData} userId={currentUser.userId || currentUser.user_id} token={token} />;
       
       case "Historique":
-        return <Historique key={refreshKey} timeData={timeData} userId={currentUser.userId || currentUser.user_id} />;
+        return <Historique key={refreshKey} timeData={timeData} userId={currentUser.userId || currentUser.user_id} token={token} />;
       
       default:
         return null;

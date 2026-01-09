@@ -3,7 +3,7 @@ import styles from "../../style/style.ts";
 import AttendanceService from "../../../services/AttendanceService";
 import ClocksApi from "../../../services/ClocksApi";
 
-export default function MonResume({ userId = 3 }) {
+export default function MonResume({ userId = 3, token }) {
   const [weeklyData, setWeeklyData] = useState({
     totalHours: 0,
     overtimeHours: 0,
@@ -54,7 +54,7 @@ export default function MonResume({ userId = 3 }) {
       const dayNames = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"];
       
       // Récupérer les pointages réels depuis l'API
-      const allClocks = await ClocksApi.listForUser(userId);
+      const allClocks = await ClocksApi.listForUser(userId, { token });
 
       // ===== Mensuel (basé sur le mois sélectionné) =====
       const monthClocks = (allClocks || [])
@@ -87,7 +87,7 @@ export default function MonResume({ userId = 3 }) {
       
       // Mapper chaque jour de la semaine
       const weekData = weekDates.map((date, index) => {
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = AttendanceService.toIsoDateKey(date);
         
         // Trouver les pointages pour ce jour
         const dayClocks = allClocks.filter(clock => 
@@ -159,7 +159,7 @@ export default function MonResume({ userId = 3 }) {
   // Charger au montage
   useEffect(() => {
     loadWeekData();
-  }, [userId, selectedMonthKey]);
+  }, [userId, selectedMonthKey, token]);
 
   const monthOptions = (() => {
     const now = new Date();
