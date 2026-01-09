@@ -1,7 +1,7 @@
 import express, { Request, Response, Router } from "express";
 import { UserService } from "../services/user-service";
 import { ClockService } from "../services/clock-service";
-import { verifyManager, verifyToken } from "../utils/UserMiddleware";
+import { verifyAdminRh, verifyManager, verifyToken } from "../utils/UserMiddleware";
 
 const userRouter: Router = express.Router();
 
@@ -12,7 +12,7 @@ const clockService = new ClockService();
  * @route GET /users
  * @desc Récupère tous les utilisateurs
  */
-userRouter.get("/", async (req: Request, res: Response) => {
+userRouter.get("/", verifyToken, verifyAdminRh, async (req: Request, res: Response) => {
     try {
         const users = await userService.getAllUsers();
         res.status(200).json(users);
@@ -37,7 +37,11 @@ userRouter.get("/:id", verifyToken, verifyManager, async (req: Request, res: Res
     }
 });
 
-userRouter.post('/', async (req: Request, res: Response) => {
+/**
+ * @route POST /users/
+ * @desc Creer un utilisateur
+ */
+userRouter.post('/', verifyToken, verifyAdminRh, async (req: Request, res: Response) => {
     try {
         const user = await userService.createUser(req);
         res.status(201).json(user);
@@ -47,7 +51,11 @@ userRouter.post('/', async (req: Request, res: Response) => {
     }
 });
 
-userRouter.put('/:id', async (req: Request, res: Response) => {
+/**
+ * @route PUT /users/
+ * @desc Met à jour un utilisateur
+ */
+userRouter.put('/:id', verifyToken, async (req: Request, res: Response) => {
     try {
         const userId: number = Number.parseInt(req.params.id);
         const user = await userService.updateUser(userId, req);
@@ -58,6 +66,10 @@ userRouter.put('/:id', async (req: Request, res: Response) => {
     }
 });
 
+/**
+ * @route DELETE /users/
+ * @desc Supprime un utilisateur
+ */
 userRouter.delete('/:id', verifyToken, verifyManager, async (req: Request, res: Response) => {
     try {
         const userId: number = Number.parseInt(req.params.id);
@@ -70,7 +82,8 @@ userRouter.delete('/:id', verifyToken, verifyManager, async (req: Request, res: 
 });
 
 /**
- * GET /users/:id/clocks
+ * @route POST /users/:id/clocks
+ * @desc Creer un pointage
  */
 userRouter.get("/:id/clocks", verifyToken, async (req: Request, res: Response) => {
     try {

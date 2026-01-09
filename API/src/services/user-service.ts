@@ -13,14 +13,14 @@ export class UserService {
     /**
      * Retourne tous les utilisateurs
      */
-    async getAllUsers(): Promise<UserLight[]> {
+    async getAllUsers(): Promise<UserEntity[]> {
         const users = await this.userRepo.find({
             relations: ["team", "managed_teams"]
         });
-        return this.userHelper.toUserLightArray(users);
+        return users;
     }
 
-    async getUserById(userId: number): Promise<UserLight> {
+    async getUserById(userId: number): Promise<UserEntity> {
         const user = await this.userRepo.findOne({
             where: { user_id: userId },
             relations: ["team", "managed_teams"]
@@ -29,7 +29,7 @@ export class UserService {
             throw new Error(`Aucun utilisateur avec cet l'Id ${userId} en base de donnée`);
         }
         else {
-            return this.userHelper.toUserLight(user);
+            return user;
         }
     }
 

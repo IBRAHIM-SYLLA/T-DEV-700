@@ -1,12 +1,16 @@
 import express, { Router, Request, Response } from "express";
 import { TeamService } from "../services/team-service";
-import { verifyManager, verifyToken } from "../utils/UserMiddleware";
+import { verifyAdminRh, verifyManager, verifyToken } from "../utils/UserMiddleware";
 
 const teamRouter: Router = express.Router();
 
 const teamService: TeamService = new TeamService();
 
-teamRouter.get("/", verifyToken, verifyManager, async (req: Request, res: Response) => {
+/**
+ * @route POST /teams/
+ * @desc Creer un utilisateur
+ */
+teamRouter.get("/", verifyToken, verifyAdminRh, async (req: Request, res: Response) => {
     try {
         const teams = await teamService.getAllTeams();
         res.status(200).json(teams);
@@ -16,7 +20,7 @@ teamRouter.get("/", verifyToken, verifyManager, async (req: Request, res: Respon
     }
 })
 
-teamRouter.get("/:id", verifyToken, verifyManager, async (req: Request, res: Response) => {
+teamRouter.get("/:id", verifyToken, verifyAdminRh, async (req: Request, res: Response) => {
     try {
         const team = await teamService.getTeamById(Number.parseInt(req.params.id));
         res.status(200).json(team);
@@ -47,7 +51,7 @@ teamRouter.get("/manageTeams/", verifyToken, verifyManager, async (req: Request,
     }
 });
 
-teamRouter.post("/", verifyToken, verifyManager, async (req: Request, res: Response) => {
+teamRouter.post("/", verifyToken, verifyAdminRh, async (req: Request, res: Response) => {
     try {
         const team = await teamService.createTeam(req);
         res.status(201).json(team);
@@ -57,7 +61,7 @@ teamRouter.post("/", verifyToken, verifyManager, async (req: Request, res: Respo
     }
 })
 
-teamRouter.put("/:id", verifyToken, verifyManager, async (req: Request, res: Response) => {
+teamRouter.put("/:id", verifyToken, verifyAdminRh, async (req: Request, res: Response) => {
     try {
         const team = await teamService.updateTeam(req, Number.parseInt(req.params.id));
         res.status(201).json(team)
@@ -67,7 +71,7 @@ teamRouter.put("/:id", verifyToken, verifyManager, async (req: Request, res: Res
     }
 })
 
-teamRouter.delete("/:id", verifyToken, verifyManager, async (req: Request, res: Response) => {
+teamRouter.delete("/:id", verifyToken, verifyAdminRh, async (req: Request, res: Response) => {
     try {
         const teamId = Number.parseInt(req.params.id)
         await teamService.deleteTeam(teamId)
