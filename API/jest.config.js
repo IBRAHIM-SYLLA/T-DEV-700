@@ -8,5 +8,6 @@ module.exports = {
     }
   },
   moduleFileExtensions: ['ts', 'js'],
-  testMatch: ['**/*.test.ts']
+  testMatch: ['**/*.test.ts'],
+  setupFiles: ['<rootDir>/tests/setup.ts']
 };
