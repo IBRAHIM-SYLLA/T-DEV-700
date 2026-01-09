@@ -3,6 +3,10 @@
  */
 class AttendanceService {
 
+  pad2(n) {
+    return String(n).padStart(2, '0');
+  }
+
   toIsoDateKey(dateTime) {
     if (!dateTime) return null;
     const date = new Date(dateTime);
@@ -10,7 +14,8 @@ class AttendanceService {
       if (typeof dateTime === 'string' && dateTime.length >= 10) return dateTime.slice(0, 10);
       return null;
     }
-    return date.toISOString().slice(0, 10);
+    // Use local date to avoid timezone shifting (e.g. -1h showing previous day)
+    return `${date.getFullYear()}-${this.pad2(date.getMonth() + 1)}-${this.pad2(date.getDate())}`;
   }
 
   toIsoTime(dateTime) {
@@ -23,7 +28,8 @@ class AttendanceService {
       }
       return null;
     }
-    return date.toISOString().slice(11, 19);
+    // Use local time so displayed times match the user's system clock
+    return `${this.pad2(date.getHours())}:${this.pad2(date.getMinutes())}:${this.pad2(date.getSeconds())}`;
   }
   
   /**
@@ -44,7 +50,7 @@ class AttendanceService {
    * @returns {Object} - État des possibilités de pointage
    */
   canClockNow(userId, allClocks) {
-    const today = new Date().toISOString().split('T')[0];
+    const today = this.toIsoDateKey(new Date());
     const clocks = allClocks || [];
 
     const hasUserIdField = clocks.some((c) => c && (typeof c.user_id !== 'undefined' || (c.user && typeof c.user.user_id !== 'undefined')));
