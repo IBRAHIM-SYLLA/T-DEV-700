@@ -7,6 +7,7 @@ const clockService = new ClockService();
 
 clockRouter.post("/", verifyToken, async (req: Request, res: Response) => {
     try {
+        console.log("IDIDIDIDIDID" + req.user!.user_id)
         const userId = req.user!.user_id;
 
         const clock = await clockService.clockInOrOut(userId);
