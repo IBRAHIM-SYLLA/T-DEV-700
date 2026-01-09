@@ -3,7 +3,6 @@ import { UserHelper } from "../helpers/UserHelper";
 import { AppDataSource } from "../config/database";
 import { UserModel } from "../models/User/user.model";
 import { TeamEntity } from "../models/Team/TeamEntity";
-import { UserLight } from "../models/User/user-light.model";
 
 export class UserService {
     userHelper: UserHelper = new UserHelper();
