@@ -17,7 +17,8 @@ if (process.env.NODE_ENV !== "test") {
     console.log(`🚀 Server running on port ${PORT}`);
   });
 
-
+  console.log("SYNC =", AppDataSource.options.synchronize);
+  console.log("ENTITIES =", AppDataSource.options.entities);
   AppDataSource.initialize()
     .then(async () => {
       console.log("✅ DataSource initialisé");
