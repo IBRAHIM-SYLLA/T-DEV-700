@@ -9,5 +9,5 @@ module.exports = {
   },
   moduleFileExtensions: ['ts', 'js'],
   testMatch: ['**/*.test.ts'],
-  setupFiles: ['<rootDir>/tests/setup.ts']
+  setupFiles: ['<rootDir>src/tests/setup.ts']
 };

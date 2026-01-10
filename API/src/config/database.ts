@@ -13,7 +13,7 @@ export const pool = mariadb.createPool({
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT) || 3306,
     user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD || "",
+    password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     connectionLimit: 5,
     allowPublicKeyRetrieval: true,
@@ -27,11 +27,14 @@ export const AppDataSource = new DataSource({
     username: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
-    synchronize: false,  
+
+    synchronize: false,
     logging: true,
+
     entities: [UserEntity, TeamEntity, ClockEntity],
-    migrations: ["src/migrations/**/*.ts"],
+    migrations: [],
 });
+
 
 export async function testConnection() {
     let conn;

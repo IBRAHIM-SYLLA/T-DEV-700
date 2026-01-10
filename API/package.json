@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
-    "build:prod": "tsc -p tsconfig.prod.json",
+    "build": "tsc && cp -r src/swagger dist/swagger",
+    "build:prod": "tsc -p tsconfig.prod.json && cp -r src/swagger dist/swagger",
     "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "test": "jest --coverage --runInBand --detectOpenHandles --forceExit",
