@@ -3,7 +3,7 @@ import request from 'supertest';
 /* =======================
   MOCK DATABASE
 ======================= */
-jest.mock('../src/config/database', () => ({
+jest.mock('../config/database', () => ({
   __esModule: true,
   AppDataSource: {
     getRepository: jest.fn(),
@@ -16,14 +16,14 @@ jest.mock('../src/config/database', () => ({
   MOCK AUTH MIDDLEWARE
   ⚠️ OBLIGATOIRE : next()
 ======================= */
-jest.mock('../src/utils/UserMiddleware', () => ({
+jest.mock('../utils/UserMiddleware', () => ({
   __esModule: true,
   verifyToken: (req: any, res: any, next: any) => next(),
   verifyAdminRh: (req: any, res: any, next: any) => next(),
   verifyManager: (req: any, res: any, next: any) => next(),
 }));
 
-jest.mock('../src/services/user-service', () => ({
+jest.mock('../services/user-service', () => ({
   __esModule: true,
   UserService: jest.fn().mockImplementation(() => ({
     getAllUsers: jest.fn().mockResolvedValue([
