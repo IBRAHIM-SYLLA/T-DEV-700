@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
     phone_number VARCHAR(20) NULL,
     password VARCHAR(255) NOT NULL,
     team_id INTEGER NULL,
-    role ENUM('super_admin', 'manager', 'employee') NOT NULL,
+    role ENUM('super_admin', 'rh', 'manager', 'employee') NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_users_teams FOREIGN KEY (team_id) REFERENCES teams(team_id) ON DELETE SET NULL
@@ -71,11 +71,11 @@ INSERT INTO teams (name, description, manager_id) VALUES
 INSERT INTO users (first_name, last_name, email, phone_number, password, team_id, role) VALUES
 ('Admin', 'System', 'admin@timemanager.com', '+33612345678', '$2b$10$ng9xn7Tb.TlCr3hx4uc05.Wo0wGVRiBnHXfadnAk2gqWaxzsWB9qC', NULL, 'super_admin'),
 ('Alice', 'Dupont', 'alice.dupont@timemanager.com', '+33623456789', '$2b$10$Jpt8Ukdppm/Bgu5.9tMhcOah/5JhrhOHs3H7hq1xED5JsZWaPbj6W', 1, 'manager'),
+('Emilie', 'Lee', 'emile.lee@timemanager.com', '+33778045048', '$2b$10$3VJHbdafu4eARRdqYzNKN.ILbv2cTt95bCDt2dIZzDOlD5FE/NVXO', NULL, 'rh'),
 ('Bruno', 'Martin', 'bruno.martin@timemanager.com', '+33634567890', '$2b$10$Uwt1PAiJDef1aeFJMVjHjeroRny6ESMtRIkhCPZtRrPQ/orZaa3mm', 1, 'employee'),
 ('Claire', 'Bernard', 'claire.bernard@timemanager.com', '+33645678901', '$2b$10$nadH4T7KY7Yc0NqK6ikhZ.Z7p0Sye2fdaEQHRGPEqIkVQY9Ykz.Q2', 1, 'employee'),
 ('Son', 'Goku', 'songoku@timemanager.com', '+33656789012', '$2b$10$qPfMxPBTmKPLvf5Di1Z2humzquhF/I795J/X6X6AP8ZLqUyAOGMRe', 2, 'employee'),
 ('David', 'Leroy', 'david.leroy@timemanager.com', '+33667890123', '$2b$10$3VJHbdafu4eARRdqYzNKN.ILbv2cTt95bCDt2dIZzDOlD5FE/NVXO', 2, 'employee');
-
 -- Mise à jour du manager des équipes (Alice est manager des deux équipes pour le test)
 UPDATE teams SET manager_id = 2 WHERE team_id IN (1, 2);
 
