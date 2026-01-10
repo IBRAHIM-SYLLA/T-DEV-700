@@ -1,4 +1,4 @@
-const DEFAULT_BASE_URL = "http://localhost:5001";
+// const DEFAULT_BASE_URL = "http://localhost:5001";
 
 function getBaseUrl() {
   const fromEnvRaw = (import.meta?.env?.VITE_API_URL || "").trim();
@@ -39,7 +39,7 @@ export async function apiFetch(path, { method = "GET", body, token, headers } = 
     finalHeaders.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(buildUrl(path), {
+  const response = await fetch(path, {
     method,
     headers: finalHeaders,
     body: body ? JSON.stringify(body) : undefined
