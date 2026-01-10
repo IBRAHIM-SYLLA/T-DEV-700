@@ -1,6 +1,7 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { TeamEntity } from "../Team/TeamEntity";
 import { ClockEntity } from "../Clock/ClockEntity";
+import { RoleEnum } from "../../enums/role-enum";
 
 @Entity("users")
 export class UserEntity {
@@ -24,9 +25,9 @@ export class UserEntity {
 
     @Column({
         type: "enum",
-        enum: ["super_admin", "manager", "employee"]
+        enum: [RoleEnum.SUPER_ADMIN, RoleEnum.RH, RoleEnum.MANAGER, RoleEnum.EMPLOYEE]
     })
-    role!: "super_admin" | "manager" | "employee";
+    role!: RoleEnum.SUPER_ADMIN | RoleEnum.RH | RoleEnum.MANAGER | RoleEnum.EMPLOYEE;
 
     @ManyToOne(() => TeamEntity, team => team.members, {
         nullable: true,
