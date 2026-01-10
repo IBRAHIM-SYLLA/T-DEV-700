@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { RoleEnum } from "../../enums/role-enum";
 
 export const verifyToken = (
     req: Request,
@@ -9,7 +10,7 @@ export const verifyToken = (
     req.user = {
         user_id: 1,
         email: "test@test.com",
-        role: "admin"
+        role: RoleEnum.SUPER_ADMIN
     };
     next();
 };
