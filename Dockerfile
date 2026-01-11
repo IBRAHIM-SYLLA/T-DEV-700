@@ -23,7 +23,6 @@ RUN npm run build
 # =====================
 FROM nginx:alpine
 
-# Install node for API
 RUN apk add --no-cache nodejs npm
 
 # Frontend
