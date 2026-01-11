@@ -16,7 +16,7 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: `http://backend:${process.env.BACKEND_PORT || 5001}`,
+        target: `http://backend:${process.env.PORT || 5001}`,
         changeOrigin: true,
       },
     },
