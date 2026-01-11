@@ -5,6 +5,8 @@ import TeamsApi from "../../../services/TeamsApi";
 import ClocksApi from "../../../services/ClocksApi";
 import AttendanceService from "../../../services/AttendanceService";
 import { toUiUser } from "../../../services/mappers";
+import DonutChart from "../../../src/components/DonutChart.jsx";
+import { downloadCsvFile } from "../../../services/Csv";
 
 const PRESENCE_REFRESH_MS = 60_000;
 
@@ -118,7 +120,7 @@ export default function TableauDeBordRH({ token }) {
             return;
           }
           nextClocks[user.user_id] = result.value;
-          nextMap[user.user_id] = ClocksApi.getTodayStatusFromClocks(result.value);
+          nextMap[user.user_id] = ClocksApi.getTodayStatusFromClocks(result.value, user.user_id);
         });
 
         if (!cancelled) {
@@ -190,8 +192,8 @@ export default function TableauDeBordRH({ token }) {
       clocksByDay.get(dayKey).push(c);
     });
 
+    const header = ["date", "arrivee", "depart", "statut", "heures_travaillees"];
     const rows = [];
-    rows.push(["date", "arrivee", "depart", "statut", "heures_travaillees"].join(";"));
 
     days.forEach((d) => {
       const dayKey = AttendanceService.toIsoDateKey(d);
@@ -199,7 +201,7 @@ export default function TableauDeBordRH({ token }) {
       const clock = dayClocks[0] || null;
 
       if (!clock) {
-        rows.push([dayKey, "", "", "Absent", "0"].join(";"));
+        rows.push([dayKey, "", "", "Absent", "0"]);
         return;
       }
 
@@ -209,19 +211,13 @@ export default function TableauDeBordRH({ token }) {
       const status = detailed.arrivalStatus?.status === "late" ? "En retard" : "Présent";
       const workedHours = (detailed.workedHours?.totalMinutes || 0) / 60;
 
-      rows.push([dayKey, arrivee, depart, status, String(Math.round(workedHours * 100) / 100)].join(";"));
+      rows.push([dayKey, arrivee, depart, status, String(Math.round(workedHours * 100) / 100)]);
     });
 
-    const csv = `\uFEFF${rows.join("\n")}`;
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `rapport_${employee.first_name}_${employee.last_name}_${selectedMonthKey}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    downloadCsvFile(`rapport_${employee.first_name}_${employee.last_name}_${selectedMonthKey}.csv`, header, rows, {
+      separator: ",",
+      excelSeparatorHint: true
+    });
   };
 
   const monthStats = useMemo(() => {
@@ -369,6 +365,21 @@ export default function TableauDeBordRH({ token }) {
                     <div style={styles.resume.cardValue}>{kpis.absent}</div>
                   </div>
                   <div style={styles.resume.cardIcon}>❌</div>
+                </div>
+              </div>
+
+              <div style={styles.profile.infoCard}>
+                <div style={styles.profile.infoTitle}>Répartition des présences (aujourd'hui)</div>
+                <div style={{ marginTop: "12px" }}>
+                  <DonutChart
+                    segments={[
+                      { label: "Présent", value: kpis.present, color: styles.history.statusBadgeComplete.background },
+                      { label: "En retard", value: kpis.late, color: styles.history.statusBadgeDelay.background },
+                      { label: "Absent", value: kpis.absent, color: styles.history.statusBadgeIncomplete.background }
+                    ]}
+                    centerLabel={String(kpis.total || 0)}
+                    centerSubLabel="salariés"
+                  />
                 </div>
               </div>
 

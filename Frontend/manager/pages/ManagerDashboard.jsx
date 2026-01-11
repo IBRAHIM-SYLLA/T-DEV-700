@@ -6,11 +6,16 @@ import TeamsApi from "../../services/TeamsApi";
 import ClocksApi from "../../services/ClocksApi";
 import AttendanceService from "../../services/AttendanceService";
 import Pointage from "../../src/pages/employee/Pointage";
+import DonutChart from "../../src/components/DonutChart.jsx";
+import { toUiUser } from "../../services/mappers";
+import { downloadCsvFile, sanitizeFilenamePart } from "../../services/Csv";
+import EmployeeFicheModal from "./EmployeeFicheModal";
 
 export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }) {
   const [showProfile, setShowProfile] = useState(false);
   const [activeTab, setActiveTab] = useState("Pointage");
   const [currentUser, setCurrentUser] = useState(user);
+  const [ficheEmployee, setFicheEmployee] = useState(null);
 
   const [loadingTeam, setLoadingTeam] = useState(true);
   const [allTeams, setAllTeams] = useState([]);
@@ -40,20 +45,32 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
         const safeTeams = allTeams || [];
         setAllTeams(safeTeams);
 
-        const managerId = currentUser?.user_id ?? currentUser?.userId;
-        const teams = (safeTeams || []).filter((t) => (t.manager_id ?? t.manager?.user_id) === managerId);
-        setManagedTeams(teams);
-        setSelectedTeamId((prev) => prev || teams?.[0]?.team_id || null);
+        const managerId = Number(currentUser?.user_id ?? currentUser?.userId);
+        const hasManagerAssignmentInfo = (safeTeams || []).some(
+          (t) => t?.manager_id !== null && t?.manager_id !== undefined
+            || t?.manager?.user_id !== null && t?.manager?.user_id !== undefined
+        );
 
-        // Build a local users list from team.members (backend /api/users on main is a light DTO)
+        // If the API provides manager assignment info, scope manager view to managed teams only.
+        // Otherwise, fall back to showing all teams (cannot enforce scoping without backend support).
+        const scopedTeams = hasManagerAssignmentInfo && Number.isFinite(managerId)
+          ? (safeTeams || []).filter((t) => Number(t.manager_id ?? t.manager?.user_id) === managerId)
+          : safeTeams;
+
+        setManagedTeams(scopedTeams);
+        setSelectedTeamId((prev) => prev || scopedTeams?.[0]?.team_id || null);
+
+        // Build a local users list from team.members (team.members often doesn't include role)
+        // IMPORTANT: for manager views, only include members of managed teams.
         const usersById = new Map();
-        (safeTeams || []).forEach((team) => {
+        (scopedTeams || []).forEach((team) => {
           const members = Array.isArray(team?.members) ? team.members : [];
           members.forEach((m) => {
-            const id = m?.user_id ?? m?.userId;
+            const u = toUiUser(m);
+            const id = u?.user_id ?? u?.userId;
             if (!id) return;
-            // attach team_id inferred from the team
-            const withTeam = { ...m, team_id: team.team_id };
+            // attach team_id inferred from the team (and keep both snake_case and camelCase)
+            const withTeam = { ...u, team_id: team.team_id, teamId: team.team_id };
             if (!usersById.has(id)) usersById.set(id, withTeam);
           });
         });
@@ -69,24 +86,48 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
     };
   }, [currentUser.user_id, token]);
 
+  useEffect(() => {
+    if (teamFilterId === "all") return;
+    const exists = (managedTeams || []).some((t) => String(t.team_id) === String(teamFilterId));
+    if (!exists) setTeamFilterId("all");
+  }, [managedTeams, teamFilterId]);
+
   const selectedTeam = useMemo(() => {
     return (managedTeams || []).find((t) => t.team_id === selectedTeamId) || null;
   }, [managedTeams, selectedTeamId]);
 
   const teamsById = useMemo(() => {
     const map = new Map();
-    (allTeams || []).forEach((t) => map.set(t.team_id, t));
+    (managedTeams || []).forEach((t) => map.set(t.team_id, t));
     return map;
+  }, [managedTeams]);
+
+  const teamManagerIds = useMemo(() => {
+    const ids = new Set();
+    (allTeams || []).forEach((t) => {
+      const id = t?.manager_id ?? t?.manager?.user_id;
+      if (id) ids.add(Number(id));
+    });
+    return ids;
   }, [allTeams]);
 
   const allEmployees = useMemo(() => {
-    return (allUsers || []).filter((u) => u.role === "employee");
-  }, [allUsers]);
+    return (allUsers || [])
+      .filter((u) => {
+        const id = u?.user_id ?? u?.userId;
+        if (!id) return false;
+        if (teamManagerIds.has(Number(id))) return false;
+        // When role is missing from /teams members, assume it's an employee.
+        if (!u.role) return true;
+        return u.role === "employee";
+      })
+      .map((u) => ({ ...u, user_id: u.user_id ?? u.userId }));
+  }, [allUsers, teamManagerIds]);
 
   const teamEmployees = useMemo(() => {
     if (!selectedTeamId) return [];
-    return (allUsers || []).filter((u) => u.role === "employee" && u.team_id === selectedTeamId);
-  }, [allUsers, selectedTeamId]);
+    return (allEmployees || []).filter((u) => u.team_id === selectedTeamId);
+  }, [allEmployees, selectedTeamId]);
 
   const employeesForPresence = useMemo(() => {
     // For manager views we want presence/status across all employees
@@ -120,7 +161,7 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
             return;
           }
           nextClocks[u.user_id] = result.value;
-          nextMap[u.user_id] = ClocksApi.getTodayStatusFromClocks(result.value);
+          nextMap[u.user_id] = ClocksApi.getTodayStatusFromClocks(result.value, u.user_id);
         });
 
         if (!cancelled) {
@@ -320,8 +361,8 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
       clocksByDay.get(dayKey).push(c);
     });
 
+    const header = ["date", "arrivee", "depart", "statut", "heures_travaillees"];
     const rows = [];
-    rows.push(["date", "arrivee", "depart", "statut", "heures_travaillees"].join(";"));
 
     days.forEach((d) => {
       const dayKey = d.toISOString().slice(0, 10);
@@ -329,7 +370,7 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
       const clock = dayClocks[0] || null;
 
       if (!clock) {
-        rows.push([dayKey, "", "", "Absent", "0"].join(";"));
+        rows.push([dayKey, "", "", "Absent", "0"]);
         return;
       }
 
@@ -339,19 +380,59 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
       const status = detailed.arrivalStatus?.status === "late" ? "En retard" : "Présent";
       const workedHours = (detailed.workedHours?.totalMinutes || 0) / 60;
 
-      rows.push([dayKey, arrivee, depart, status, String(Math.round(workedHours * 100) / 100)].join(";"));
+      rows.push([dayKey, arrivee, depart, status, String(Math.round(workedHours * 100) / 100)]);
     });
 
-    const csv = `\uFEFF${rows.join("\n")}`;
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `rapport_${employee.first_name}_${employee.last_name}_${selectedMonthKey}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    downloadCsvFile(`rapport_${employee.first_name}_${employee.last_name}_${selectedMonthKey}.csv`, header, rows, {
+      separator: ",",
+      excelSeparatorHint: true
+    });
+  };
+
+  const downloadTeamCsv = (team) => {
+    const teamId = team?.team_id;
+    const teamName = team?.name || `team-${teamId}`;
+    const employees = (allEmployees || []).filter((u) => Number(u.team_id) === Number(teamId));
+    const days = getWeekdaysOfMonth(selectedMonthKey);
+
+    const header = ["team_name", "employee_nom", "date", "arrivee", "depart", "statut", "heures_travaillees"];
+    const rows = [];
+
+    employees.forEach((employee) => {
+      const empName = `${employee.first_name || ""} ${employee.last_name || ""}`.trim();
+      const clocks = clocksByUserId[employee.user_id] || [];
+      const clocksByDay = new Map();
+      clocks.forEach((c) => {
+        const dayKey = AttendanceService.toIsoDateKey(c.arrival_time);
+        if (!dayKey || !dayKey.startsWith(selectedMonthKey)) return;
+        if (!clocksByDay.has(dayKey)) clocksByDay.set(dayKey, []);
+        clocksByDay.get(dayKey).push(c);
+      });
+
+      days.forEach((d) => {
+        const dayKey = d.toISOString().slice(0, 10);
+        const dayClocks = clocksByDay.get(dayKey) || [];
+        const clock = dayClocks[0] || null;
+
+        if (!clock) {
+          rows.push([teamName, empName, dayKey, "", "", "Absent", "0"]);
+          return;
+        }
+
+        const detailed = AttendanceService.getClockDetailedStatus(clock, null);
+        const arrivee = (AttendanceService.toIsoTime(clock.arrival_time) || "").slice(0, 5);
+        const depart = clock.departure_time ? (AttendanceService.toIsoTime(clock.departure_time) || "").slice(0, 5) : "";
+        const status = detailed.arrivalStatus?.status === "late" ? "En retard" : "Présent";
+        const workedHours = (detailed.workedHours?.totalMinutes || 0) / 60;
+
+        rows.push([teamName, empName, dayKey, arrivee, depart, status, String(Math.round(workedHours * 100) / 100)]);
+      });
+    });
+
+    downloadCsvFile(`rapport_equipe_${sanitizeFilenamePart(teamName)}_${selectedMonthKey}.csv`, header, rows, {
+      separator: ",",
+      excelSeparatorHint: true
+    });
   };
 
   const getRowBackground = (status) => {
@@ -365,6 +446,16 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
     if (status === "En retard") return styles.history.statusBadgeDelay;
     return styles.history.statusBadgeIncomplete;
   };
+
+  const pageTitleStyle = useMemo(
+    () =>
+      styles.mergeStyles(styles.profile.title, {
+        textAlign: "center",
+        width: "100%",
+        marginBottom: "12px"
+      }),
+    []
+  );
 
   const handleHomeClick = () => {
     setActiveTab("Pointage");
@@ -398,8 +489,7 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
       case "Tableau de bord":
         return (
           <div style={styles.dashboard.contentContainer}>
-            <h2>📊 Tableau de bord Manager</h2>
-            <p>Vue globale des employés et de leur statut du jour.</p>
+            <h2 style={pageTitleStyle}>📊 Tableau de bord Manager</h2>
 
             {loadingTeam || presenceLoading ? (
               <p>Chargement...</p>
@@ -446,8 +536,8 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
                         onChange={(e) => setTeamFilterId(e.target.value)}
                         style={styles.history.monthSelector}
                       >
-                        <option value="all">Toutes les équipes</option>
-                        {(allTeams || []).map((t) => (
+                        <option value="all">Toutes mes équipes</option>
+                        {(managedTeams || []).map((t) => (
                           <option key={t.team_id} value={String(t.team_id)}>
                             {t.name}
                           </option>
@@ -467,7 +557,10 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "12px" }}>
                     {sortedFilteredEmployees.length ? (
                       sortedFilteredEmployees.map((emp) => {
-                        const status = todayStatusByUserId[emp.user_id]?.status || "—";
+                        const statusInfo = todayStatusByUserId[emp.user_id] || {};
+                        const status = statusInfo.status || "—";
+                        const lateMinutes = statusInfo.lateMinutes || 0;
+                        const arrival = statusInfo.clock?.arrival_time ? formatClockTime(statusInfo.clock.arrival_time) : "";
                         const teamName = teamsById.get(emp.team_id)?.name || "Aucune équipe";
 
                         return (
@@ -489,12 +582,15 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
                                 {emp.first_name} {emp.last_name}
                               </div>
                               <div style={{ fontSize: "12px", opacity: 0.75 }}>
-                                {teamName} · {emp.email} {emp.phone_number ? `· ${emp.phone_number}` : ""}
+                                {teamName}
+                                {emp.email ? ` · ${emp.email}` : ""}
+                                {emp.phone_number ? ` · ${emp.phone_number}` : ""}
+                                {arrival ? ` · Arrivée: ${arrival}` : ""}
                               </div>
                             </div>
 
                             <span style={styles.mergeStyles(styles.history.statusBadge, getBadgeStyle(status))}>
-                              {status}
+                              {status === "En retard" && lateMinutes ? `En retard (+${lateMinutes}m)` : status}
                             </span>
                           </div>
                         );
@@ -512,7 +608,7 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
       case "Mon équipe":
         return (
           <div style={styles.dashboard.contentContainer}>
-            <h2>👥 Gestion de l'équipe</h2>
+            <h2 style={pageTitleStyle}>👥 Gestion de l'équipe</h2>
             {loadingTeam || presenceLoading ? (
               <p>Chargement...</p>
             ) : (
@@ -526,8 +622,8 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
                         onChange={(e) => setTeamFilterId(e.target.value)}
                         style={styles.history.monthSelector}
                       >
-                        <option value="all">Toutes les équipes</option>
-                        {(allTeams || []).map((t) => (
+                        <option value="all">Toutes mes équipes</option>
+                        {(managedTeams || []).map((t) => (
                           <option key={t.team_id} value={String(t.team_id)}>
                             {t.name}
                           </option>
@@ -547,7 +643,10 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "12px" }}>
                     {sortedFilteredEmployees.length ? (
                       sortedFilteredEmployees.map((emp) => {
-                        const status = todayStatusByUserId[emp.user_id]?.status || "—";
+                        const statusInfo = todayStatusByUserId[emp.user_id] || {};
+                        const status = statusInfo.status || "—";
+                        const lateMinutes = statusInfo.lateMinutes || 0;
+                        const arrival = statusInfo.clock?.arrival_time ? formatClockTime(statusInfo.clock.arrival_time) : "";
                         const teamName = teamsById.get(emp.team_id)?.name || "Aucune équipe";
 
                         return (
@@ -568,11 +667,15 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
                               <div style={{ fontWeight: 700 }}>
                                 {emp.first_name} {emp.last_name}
                               </div>
-                              <div style={{ fontSize: "12px", opacity: 0.7 }}>{teamName} · {emp.email}</div>
+                              <div style={{ fontSize: "12px", opacity: 0.7 }}>
+                                {teamName}
+                                {emp.email ? ` · ${emp.email}` : ""}
+                                {arrival ? ` · Arrivée: ${arrival}` : ""}
+                              </div>
                             </div>
 
                             <span style={styles.mergeStyles(styles.history.statusBadge, getBadgeStyle(status))}>
-                              {status}
+                              {status === "En retard" && lateMinutes ? `En retard (+${lateMinutes}m)` : status}
                             </span>
                           </div>
                         );
@@ -590,7 +693,7 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
       case "Statistiques":
         return (
           <div style={styles.dashboard.contentContainer}>
-            <h2>📈 Statistiques de l'équipe</h2>
+            <h2 style={pageTitleStyle}>📈 Statistiques de l'équipe</h2>
             {loadingTeam || presenceLoading ? (
               <p>Chargement...</p>
             ) : (
@@ -598,20 +701,28 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
                 <div style={styles.profile.infoCard}>
                   <div style={styles.profile.infoTitle}>Présences (aujourd'hui)</div>
                   <div style={{ marginTop: "12px" }}>
-                    {renderStackedBar(statusCountsFromRows(allPresenceRows))}
-                  </div>
-                  <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginTop: "12px" }}>
-                    <span style={styles.mergeStyles(styles.history.statusBadge, styles.history.statusBadgeComplete)}>Présent</span>
-                    <span style={styles.mergeStyles(styles.history.statusBadge, styles.history.statusBadgeDelay)}>En retard</span>
-                    <span style={styles.mergeStyles(styles.history.statusBadge, styles.history.statusBadgeIncomplete)}>Absent</span>
+                    {(() => {
+                      const counts = statusCountsFromRows(allPresenceRows);
+                      return (
+                        <DonutChart
+                          segments={[
+                            { label: "Présent", value: counts.present, color: styles.history.statusBadgeComplete.background },
+                            { label: "En retard", value: counts.late, color: styles.history.statusBadgeDelay.background },
+                            { label: "Absent", value: counts.absent, color: styles.history.statusBadgeIncomplete.background }
+                          ]}
+                          centerLabel={String(counts.total || 0)}
+                          centerSubLabel="employés"
+                        />
+                      );
+                    })()}
                   </div>
                 </div>
 
                 <div style={styles.profile.infoCard}>
                   <div style={styles.profile.infoTitle}>Présences par équipe (aujourd'hui)</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "12px" }}>
-                    {(allTeams || []).length ? (
-                      (allTeams || []).map((team) => {
+                    {(managedTeams || []).length ? (
+                      (managedTeams || []).map((team) => {
                         const rows = (allEmployees || [])
                           .filter((u) => u.team_id === team.team_id)
                           .map((u) => ({ user: u, status: todayStatusByUserId[u.user_id]?.status || "—" }))
@@ -691,7 +802,7 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
       case "Émargements":
         return (
           <div style={styles.dashboard.contentContainer}>
-            <h2>✅ Validation des émargements</h2>
+            <h2 style={pageTitleStyle}>✅ Validation des émargements</h2>
             {loadingTeam || presenceLoading ? (
               <p>Chargement...</p>
             ) : !selectedTeam ? (
@@ -706,8 +817,8 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
                       onChange={(e) => setTeamFilterId(e.target.value)}
                       style={styles.history.monthSelector}
                     >
-                      <option value="all">Toutes les équipes</option>
-                      {(allTeams || []).map((t) => (
+                      <option value="all">Toutes mes équipes</option>
+                      {(managedTeams || []).map((t) => (
                         <option key={t.team_id} value={String(t.team_id)}>
                           {t.name}
                         </option>
@@ -715,16 +826,12 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
                     </select>
                   </div>
 
-                  <p style={{ margin: "10px 0 0 0", opacity: 0.8 }}>
-                    Vue récapitulative basée sur les pointages enregistrés. La validation/annotation manuelle sera possible quand le backend émargements sera disponible.
-                  </p>
-
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "12px" }}>
                     {sortedFilteredEmployees.length ? (
                       sortedFilteredEmployees.map((emp) => {
                         const status = todayStatusByUserId[emp.user_id]?.status || "—";
                         const clocks = clocksByUserId[emp.user_id] || [];
-                        const todayClock = ClocksApi.getTodayClock(clocks);
+                        const todayClock = ClocksApi.getTodayClock(clocks, emp.user_id);
                         const arrivee = todayClock ? formatClockTime(todayClock.arrival_time) : "";
                         const depart = todayClock && todayClock.departure_time ? formatClockTime(todayClock.departure_time) : "";
                         const detailed = todayClock ? AttendanceService.getClockDetailedStatus(todayClock, null) : null;
@@ -764,9 +871,17 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
                               </div>
                             </div>
 
-                            <span style={styles.mergeStyles(styles.history.statusBadge, getBadgeStyle(status))}>
-                              {status}
-                            </span>
+                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                              <button
+                                style={styles.mergeStyles(styles.dashboard.editProfileBtn, { padding: "6px 10px", fontSize: "12px" })}
+                                onClick={() => setFicheEmployee({ employee: emp, teamName })}
+                              >
+                                Fiche
+                              </button>
+                              <span style={styles.mergeStyles(styles.history.statusBadge, getBadgeStyle(status))}>
+                                {status}
+                              </span>
+                            </div>
                           </div>
                         );
                       })
@@ -783,8 +898,7 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
       case "Pointage":
         return (
           <div style={styles.dashboard.contentContainer}>
-            <h2>⏱️ Pointage</h2>
-            <p>Pointer votre arrivée / départ (manager).</p>
+            <h2 style={pageTitleStyle}>⏱️ Pointage</h2>
             <Pointage
               userId={currentUser?.userId ?? currentUser?.user_id}
               token={token}
@@ -793,88 +907,17 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
           </div>
         );
       
-      case "Plannings":
-        return (
-          <div style={styles.dashboard.contentContainer}>
-            <h2>📅 Gestion des plannings</h2>
-            {loadingTeam ? (
-              <p>Chargement...</p>
-            ) : !selectedTeam ? (
-              <p>Aucune équipe assignée.</p>
-            ) : (
-              <>
-                <div style={styles.profile.infoCard}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
-                    <div style={styles.profile.infoTitle}>Planning ({selectedTeam.name})</div>
-                    {managedTeams.length > 1 ? (
-                      <select
-                        value={selectedTeamId || ""}
-                        onChange={(e) => setSelectedTeamId(Number(e.target.value))}
-                        style={styles.history.monthSelector}
-                      >
-                        {managedTeams.map((t) => (
-                          <option key={t.team_id} value={t.team_id}>
-                            {t.name}
-                          </option>
-                        ))}
-                      </select>
-                    ) : null}
-                  </div>
-
-                  <p style={{ margin: "10px 0 0 0", opacity: 0.8 }}>
-                    Planning standard affiché (09:00–18:00, pause 12:00–14:00). La gestion des plannings personnalisés nécessite l’API work_schedules (à venir).
-                  </p>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "12px" }}>
-                    {teamEmployees.length ? (
-                      teamEmployees.map((emp) => (
-                        <div
-                          key={emp.user_id}
-                          style={styles.mergeStyles(
-                            {
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              padding: "14px 16px",
-                              borderRadius: "8px"
-                            },
-                            { background: "white" }
-                          )}
-                        >
-                          <div>
-                            <div style={{ fontWeight: 600 }}>
-                              {emp.first_name} {emp.last_name}
-                            </div>
-                            <div style={{ fontSize: "12px", opacity: 0.7 }}>{emp.email}</div>
-                          </div>
-                          <div style={{ fontSize: "13px", opacity: 0.9 }}>
-                            Lun–Ven: 09:00–18:00 · Pause: 12:00–14:00
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p>Aucun employé dans cette équipe.</p>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        );
-      
       case "Rapports":
         return (
           <div style={styles.dashboard.contentContainer}>
-            <h2>📄 Rapports de l'équipe</h2>
+            <h2 style={pageTitleStyle}>📄 Rapports</h2>
             {loadingTeam || presenceLoading ? (
               <p>Chargement...</p>
-            ) : !selectedTeam ? (
-              <p>Aucune équipe assignée.</p>
             ) : (
               <>
                 <div style={styles.profile.infoCard}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
-                    <div style={styles.profile.infoTitle}>Télécharger rapports ({selectedTeam.name})</div>
+                    <div style={styles.profile.infoTitle}>Télécharger rapports par équipe</div>
                     <select
                       value={selectedMonthKey}
                       onChange={(e) => setSelectedMonthKey(e.target.value)}
@@ -887,45 +930,44 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
                       ))}
                     </select>
                   </div>
-
-                  <p style={{ margin: "10px 0 0 0", opacity: 0.8 }}>
-                    Export CSV disponible. Les rapports avancés (PDF/KPIs côté backend) sont en cours de développement.
-                  </p>
-
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "12px" }}>
-                    {(teamEmployees || []).length ? (
-                      (teamEmployees || []).map((emp) => (
-                        <div
-                          key={emp.user_id}
-                          style={styles.mergeStyles(
-                            {
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              padding: "14px 16px",
-                              borderRadius: "8px",
-                              border: "1px solid #e2e8f0"
-                            },
-                            {}
-                          )}
-                        >
-                          <div>
-                            <div style={{ fontWeight: 600 }}>
-                              {emp.first_name} {emp.last_name}
-                            </div>
-                            <div style={{ fontSize: "12px", opacity: 0.7 }}>{emp.email}</div>
-                          </div>
+                    {(managedTeams || []).length ? (
+                      (managedTeams || []).map((team) => {
+                        const teamId = team?.team_id;
+                        const employees = (allEmployees || []).filter((u) => Number(u.team_id) === Number(teamId));
+                        const count = employees.length;
 
-                          <button
-                            style={styles.dashboard.navTab}
-                            onClick={() => downloadEmployeeCsv(emp)}
+                        return (
+                          <div
+                            key={teamId}
+                            style={styles.mergeStyles(
+                              {
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                padding: "14px 16px",
+                                borderRadius: "8px",
+                                border: "1px solid #e2e8f0",
+                                background: "#fff"
+                              },
+                              {}
+                            )}
                           >
-                            Télécharger CSV
-                          </button>
-                        </div>
-                      ))
+                            <div>
+                              <div style={{ fontWeight: 700 }}>{team?.name || `Équipe ${teamId}`}</div>
+                              <div style={{ fontSize: "12px", opacity: 0.75 }}>
+                                {count} employé{count > 1 ? "s" : ""}
+                              </div>
+                            </div>
+
+                            <button style={styles.dashboard.navTab} onClick={() => downloadTeamCsv(team)}>
+                              Télécharger CSV
+                            </button>
+                          </div>
+                        );
+                      })
                     ) : (
-                      <p>Aucun employé dans cette équipe.</p>
+                      <p>Aucune équipe.</p>
                     )}
                   </div>
                 </div>
@@ -941,6 +983,17 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
 
   return (
     <div style={styles.dashboard.container}>
+      {!!ficheEmployee && (
+        <EmployeeFicheModal
+          employee={ficheEmployee.employee}
+          teamName={ficheEmployee.teamName}
+          clocks={clocksByUserId[ficheEmployee.employee.user_id] || []}
+          todayStatus={todayStatusByUserId[ficheEmployee.employee.user_id]}
+          monthKey={selectedMonthKey}
+          onExportCsv={() => downloadEmployeeCsv(ficheEmployee.employee)}
+          onClose={() => setFicheEmployee(null)}
+        />
+      )}
       {/* NavBar commune */}
       <NavBar
         user={currentUser}
@@ -953,7 +1006,7 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
       {/* Navigation Tabs - Hide when showing profile */}
       {!showProfile && (
         <nav style={styles.dashboard.nav}>
-          {["Pointage", "Tableau de bord", "Mon équipe", "Statistiques", "Émargements", "Plannings", "Rapports"].map((tab) => (
+          {["Pointage", "Tableau de bord", "Mon équipe", "Statistiques", "Émargements", "Rapports"].map((tab) => (
             <button
               key={tab}
               style={activeTab === tab ? 
@@ -967,7 +1020,6 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
               {tab === "Statistiques" && "📈"} 
               {tab === "Émargements" && "✅"} 
               {tab === "Pointage" && "⏱️"}
-              {tab === "Plannings" && "📅"} 
               {tab === "Rapports" && "📄"} 
               {" "}{tab}
             </button>

@@ -78,7 +78,7 @@ export default function EmployeeDashboard({ user, token, onLogout, onUpdateUser 
         </div>
         <div style={styles.dashboard.headerRight}>
           <span style={styles.dashboard.userInfo}>
-            Connecté en tant que <strong>{user?.firstName || 'Utilisateur'} {user?.lastName || ''}</strong>
+            Connecté en tant que <strong>{currentUser?.firstName || 'Utilisateur'} {currentUser?.lastName || ''}</strong>
           </span>
           <button 
             style={styles.dashboard.editProfileBtn} 
