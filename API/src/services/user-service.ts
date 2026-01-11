@@ -93,21 +93,21 @@ export class UserService {
 
 
         existing.first_name = req.body.first_name ?? existing.first_name;
-        existing.last_name = req.bodylast_name ?? existing.last_name;
+        existing.last_name = req.body.last_name ?? existing.last_name;
         existing.email = req.body.email ?? existing.email;
         existing.phone_number = req.body.phone_number ?? existing.phone_number;
         existing.role = req.body.role ?? existing.role;
 
-        if (req.password) {
-            existing.password = await this.userHelper.hashString(req.password, 10);
+        if (req.body.password) {
+            existing.password = await this.userHelper.hashString(req.body.password, 10);
         }
 
-        if (req.team_id !== undefined) {
-            if (req.team_id === null) {
+        if (req.body.team_id !== undefined) {
+            if (req.body.team_id === null) {
                 // Désassignation
                 existing.team = null;
             } else {
-                const team = await this.teamRepo.findOneBy({ team_id: req.team_id });
+                const team = await this.teamRepo.findOneBy({ team_id: req.body.team_id });
                 if (!team) throw new Error("L'équipe n'existe pas");
                 existing.team = team;
             }
