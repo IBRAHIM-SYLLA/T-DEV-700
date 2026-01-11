@@ -10,7 +10,7 @@ if (process.env.NODE_ENV !== "test") {
   const envPath = path.resolve(process.cwd(), '.env');
   dotenv.config({ path: envPath });
   // Démarrage du serveur
-  const PORT = process.env.PORT || 5001;
+  const PORT = 5001;
 
   // ✅ Démarrer le serveur AVANT l'initialisation de la DB
   app.listen(PORT, () => {
