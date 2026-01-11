@@ -23,7 +23,8 @@ RUN npm run build
 # =====================
 FROM nginx:alpine
 
-RUN apk add --no-cache nodejs npm gettext
+# Install node for API
+RUN apk add --no-cache nodejs npm
 
 # Frontend
 COPY --from=frontend-builder /frontend/dist /usr/share/nginx/html
@@ -34,14 +35,9 @@ COPY --from=backend-builder /app/dist ./dist
 COPY --from=backend-builder /app/node_modules ./node_modules
 COPY --from=backend-builder /app/package*.json ./
 
-# Nginx template
-COPY nginx/nginx.conf.template /etc/nginx/nginx.conf.template
+# Nginx config
+COPY nginx/nginx.conf /etc/nginx/nginx.conf
 
 EXPOSE 80
 
-RUN rm -f /etc/nginx/nginx.conf
-CMD sh -c "envsubst '$PORT' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf \
-    && node dist/server.js & \
-    nginx -g 'daemon off;'"
-
-
+CMD sh -c "node dist/server.js & nginx -g 'daemon off;'"
