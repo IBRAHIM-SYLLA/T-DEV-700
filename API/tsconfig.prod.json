@@ -16,8 +16,7 @@
     "emitDecoratorMetadata": true,
     "useDefineForClassFields": false,
     "types": [
-      "node",
-      "jest"
+      "node"
     ],
     "typeRoots": [
       "./node_modules/@types",
