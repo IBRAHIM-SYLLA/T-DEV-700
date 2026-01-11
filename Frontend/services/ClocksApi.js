@@ -50,13 +50,29 @@ function getTodayKey() {
   return toIsoDateKey(new Date());
 }
 
-function getTodayClock(clocks) {
-  const today = getTodayKey();
-  return (clocks || []).find((clock) => toIsoDateKey(clock.arrival_time) === today) || null;
+function filterClocksForUser(clocks, userId) {
+  const list = clocks || [];
+  const id = Number(userId);
+  if (!Number.isFinite(id)) return list;
+
+  const hasUserIdField = list.some(
+    (c) => c && (typeof c.user_id !== "undefined" || (c.user && typeof c.user.user_id !== "undefined"))
+  );
+
+  // If the payload doesn't contain a user identifier, we cannot safely filter.
+  if (!hasUserIdField) return list;
+
+  return list.filter((c) => Number(c?.user_id ?? c?.user?.user_id) === id);
 }
 
-function getTodayStatusFromClocks(clocks) {
-  const todayClock = getTodayClock(clocks);
+function getTodayClock(clocks, userId) {
+  const today = getTodayKey();
+  const list = userId ? filterClocksForUser(clocks, userId) : (clocks || []);
+  return list.find((clock) => toIsoDateKey(clock.arrival_time) === today) || null;
+}
+
+function getTodayStatusFromClocks(clocks, userId) {
+  const todayClock = getTodayClock(clocks, userId);
   if (!todayClock) return { status: "Absent", clock: null, lateMinutes: 0 };
 
   const arrivalTime = toIsoTime(todayClock.arrival_time);

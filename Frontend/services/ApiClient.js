@@ -1,4 +1,6 @@
-const DEFAULT_BASE_URL = "http://localhost:5001";
+// Default to same-origin so it works behind the nginx reverse-proxy in prod
+// (and with Vite's /api proxy in dev).
+const DEFAULT_BASE_URL = "";
 
 function getBaseUrl() {
   const fromEnvRaw = (import.meta?.env?.VITE_API_URL || "").trim();
@@ -10,7 +12,7 @@ function getBaseUrl() {
   const fromEnv = !fromEnvRaw || looksUnexpanded || !looksHttp ? "" : fromEnvRaw;
 
   const baseUrl = fromEnv || DEFAULT_BASE_URL;
-  return baseUrl.replace(/\/$/, "");
+  return baseUrl ? baseUrl.replace(/\/$/, "") : "";
 }
 
 function buildUrl(path) {
@@ -29,7 +31,7 @@ async function parseJsonSafely(response) {
   }
 }
 
-export async function apiFetch(path, { method = "GET", body, token, headers } = {}) {
+export async function apiFetch(path, { method = "GET", body, token, headers, silent = false } = {}) {
   const finalHeaders = {
     ...(body ? { "Content-Type": "application/json" } : {}),
     ...(headers || {})
@@ -45,7 +47,7 @@ export async function apiFetch(path, { method = "GET", body, token, headers } = 
     body: body ? JSON.stringify(body) : undefined
   });
 
-  console.log(response);
+  if (!silent) console.log(response);
 
   const data = await parseJsonSafely(response);
 
@@ -57,6 +59,7 @@ export async function apiFetch(path, { method = "GET", body, token, headers } = 
     const err = new Error(message);
     err.status = response.status;
     err.data = data;
+    if (silent) err.silent = true;
     throw err;
   }
 

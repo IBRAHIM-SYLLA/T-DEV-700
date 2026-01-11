@@ -1,15 +1,20 @@
 import { apiFetch } from "./ApiClient";
 import { toApiUserPayload, toUiUser } from "./mappers";
+import { cacheUserTeams } from "./teamCache";
 
 const UsersApi = {
   async list({ token } = {}) {
     const users = await apiFetch("/api/users", { token });
-    return Array.isArray(users) ? users.map(toUiUser) : [];
+    const list = Array.isArray(users) ? users.map(toUiUser) : [];
+    cacheUserTeams(list);
+    return list;
   },
 
   async getById(userId, { token } = {}) {
     const user = await apiFetch(`/api/users/${userId}`, { token });
-    return toUiUser(user);
+    const ui = toUiUser(user);
+    cacheUserTeams([ui]);
+    return ui;
   },
 
   async create(payload, { token } = {}) {
@@ -18,7 +23,9 @@ const UsersApi = {
       token,
       body: toApiUserPayload(payload)
     });
-    return toUiUser(created);
+    const ui = toUiUser(created);
+    cacheUserTeams([ui]);
+    return ui;
   },
 
   async update(userId, payload, { token } = {}) {
@@ -27,7 +34,9 @@ const UsersApi = {
       token,
       body: toApiUserPayload(payload)
     });
-    return toUiUser(updated);
+    const ui = toUiUser(updated);
+    cacheUserTeams([ui]);
+    return ui;
   },
 
   async remove(userId, { token } = {}) {

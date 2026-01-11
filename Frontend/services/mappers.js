@@ -6,7 +6,13 @@ export function toUiUser(apiUser) {
   const lastName = apiUser.lastName ?? apiUser.last_name ?? "";
   const email = apiUser.email ?? apiUser.username ?? "";
   const phoneNumber = apiUser.phoneNumber ?? apiUser.phone_number ?? "";
-  const teamId = apiUser.teamId ?? apiUser.team_id ?? null;
+  const teamId =
+    apiUser.teamId ??
+    apiUser.team_id ??
+    apiUser.team?.teamId ??
+    apiUser.team?.team_id ??
+    apiUser.team?.id ??
+    null;
   const role = apiUser.role ?? "";
 
   return {

@@ -16,7 +16,10 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: `http://backend:${process.env.BACKEND_PORT || 5001}`,
+        target:
+          process.env.NODE_ENV === 'docker'
+            ? `http://backend:${process.env.BACKEND_PORT || 5001}`
+            : `http://localhost:${process.env.BACKEND_PORT || 5001}`,
         changeOrigin: true,
       },
     },
