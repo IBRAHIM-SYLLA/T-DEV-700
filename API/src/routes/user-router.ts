@@ -2,6 +2,8 @@ import express, { Request, Response, Router } from "express";
 import { UserService } from "../services/user-service";
 import { ClockService } from "../services/clock-service";
 import { verifyAdminRh, verifyManager, verifyToken } from "../utils/UserMiddleware";
+import { createUserValidator, updateUserValidator } from "../validators/user.validators";
+import { validateRequest } from "../utils/validator-middleware";
 
 const userRouter: Router = express.Router();
 
@@ -41,30 +43,40 @@ userRouter.get("/:id", verifyToken, verifyManager, async (req: Request, res: Res
  * @route POST /users/
  * @desc Creer un utilisateur
  */
-userRouter.post('/', verifyToken, verifyAdminRh, async (req: Request, res: Response) => {
-    try {
-        const user = await userService.createUser(req);
-        res.status(201).json(user);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Erreur lors de la création de l’utilisateur' });
-    }
-});
+userRouter.post(
+    '/',
+    verifyToken,
+    verifyAdminRh,
+    createUserValidator,
+    validateRequest,
+    async (req: Request, res: Response) => {
+        try {
+            const user = await userService.createUser(req);
+            res.status(201).json(user);
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ message: 'Erreur lors de la création de l’utilisateur' });
+        }
+    });
 
 /**
  * @route PUT /users/
  * @desc Met à jour un utilisateur
  */
-userRouter.put('/:id', verifyToken, async (req: Request, res: Response) => {
-    try {
-        const userId: number = Number.parseInt(req.params.id);
-        const user = await userService.updateUser(userId, req);
-        res.status(201).json(user);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Erreur lors de la mise a jour de l’utilisateur' });
-    }
-});
+userRouter.put('/:id',
+    verifyToken,
+    updateUserValidator,
+    validateRequest,
+    async (req: Request, res: Response) => {
+        try {
+            const userId: number = Number.parseInt(req.params.id);
+            const user = await userService.updateUser(userId, req);
+            res.status(201).json(user);
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ message: 'Erreur lors de la mise a jour de l’utilisateur' });
+        }
+    });
 
 /**
  * @route DELETE /users/

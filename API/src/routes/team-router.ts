@@ -3,6 +3,8 @@ import { TeamService } from "../services/team-service";
 import { verifyAdminRh, verifyManager, verifyToken } from "../utils/UserMiddleware";
 import { RoleEnum } from "../enums/role-enum";
 import { TeamEntity } from "../models/Team/TeamEntity";
+import { createTeamValidator } from "../validators/team.validators";
+import { validateRequest } from "../utils/validator-middleware";
 
 const teamRouter: Router = express.Router();
 
@@ -67,15 +69,20 @@ teamRouter.get("/manageTeams/", verifyToken, verifyManager, async (req: Request,
     }
 });
 
-teamRouter.post("/", verifyToken, verifyAdminRh, async (req: Request, res: Response) => {
-    try {
-        const team = await teamService.createTeam(req);
-        res.status(201).json(team);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Erreur lors de la création de l’équipe' });
-    }
-})
+teamRouter.post("/",
+    verifyToken,
+    verifyAdminRh,
+    createTeamValidator,
+    validateRequest,
+    async (req: Request, res: Response) => {
+        try {
+            const team = await teamService.createTeam(req);
+            res.status(201).json(team);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: 'Erreur lors de la création de l’équipe' });
+        }
+    })
 
 teamRouter.put("/:id", verifyToken, verifyAdminRh, async (req: Request, res: Response) => {
     try {
