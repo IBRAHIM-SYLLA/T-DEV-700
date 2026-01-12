@@ -47,7 +47,7 @@ export class AuthService {
     password: string
   ): Promise<{ token: string; user: UserEntity }> {
     try {
-      const user = await this.userRepo.findOne({ where: { email: email } });;
+      const user = await this.userRepo.findOne({ where: { email: email } });
       if (!user) throw new Error("Email ou mot de passe incorrect");
 
       const validPassword = await bcrypt.compare(password, user.password);
