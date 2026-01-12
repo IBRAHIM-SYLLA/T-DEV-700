@@ -35,9 +35,8 @@ COPY --from=backend-builder /app/dist ./dist
 COPY --from=backend-builder /app/node_modules ./node_modules
 COPY --from=backend-builder /app/package*.json ./
 
-# Nginx config
-COPY nginx/nginx.conf /etc/nginx/nginx.conf
-
-EXPOSE 80
-
-CMD sh -c "node dist/server.js & nginx -g 'daemon off;'"
+# Nginx config (template)
+COPY nginx/nginx.conf.template /etc/nginx/nginx.conf.template
+# (EXPOSE est symbolique, mais ok)
+EXPOSE 8080
+CMD sh -c "envsubst '\$PORT' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && node dist/server.js & nginx -g 'daemon off;'"
