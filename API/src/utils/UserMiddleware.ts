@@ -33,7 +33,6 @@ export const verifyManager = (
   res: Response,
   next: NextFunction
 ) => {
-  console.log("Authorization header:", req.headers.authorization);
 
   if (!req.user) {
     return res.status(401).json({ message: "Non authentifié" });

@@ -24,10 +24,10 @@ teamRouter.get("/", verifyToken, verifyManager, async (req: Request, res: Respon
         }
 
         if (role == RoleEnum.MANAGER) {
-            teams = await teamService.getAllTeams();
+            teams = await teamService.getTeamsByManager(managerId);
         }
         else if (role == RoleEnum.RH || role == RoleEnum.SUPER_ADMIN) {
-            teams = await teamService.getTeamsByManager(managerId);
+            teams = await teamService.getAllTeams();
         }
         res.status(200).json(teams);
     } catch (error) {
