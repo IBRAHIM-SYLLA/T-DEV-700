@@ -1,14 +1,16 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { UserRepository } from "../repository/UserRepository";
 import dotenv from "dotenv";
 import { UserModel } from "../models/User/user.model";
+import { AppDataSource } from "../config/database";
+import { UserEntity } from "../models/User/UserEntity";
+import { UserService } from "./user-service";
 
 dotenv.config();
 
 export class AuthService {
-  private static userRepository = new UserRepository();
-
+  private static userRepo = AppDataSource.getRepository(UserEntity);
+  private static userService = new UserService();
   /**
    * @name register
    * @param user
@@ -16,7 +18,7 @@ export class AuthService {
    */
   static async register(user: UserModel): Promise<{ message: string }> {
     try {
-      const existingUser = await this.userRepository.findByEmail(user.email);
+      const existingUser = await this.userRepo.findOne({ where: { email: user.email } });
       if (existingUser) {
         throw new Error("Un utilisateur avec cet email existe déjà.");
       }
@@ -26,7 +28,7 @@ export class AuthService {
       user.password = hashedPassword;
 
       // Création dans la base
-      await this.userRepository.createUser(user);
+      await this.userService.createUser(user);
       return { message: "Utilisateur créé avec succès" };
     } catch (error: any) {
       console.error("Erreur AuthService.register :", error);
@@ -43,9 +45,9 @@ export class AuthService {
   static async login(
     email: string,
     password: string
-  ): Promise<{ token: string; user: UserModel }> {
+  ): Promise<{ token: string; user: UserEntity }> {
     try {
-      const user = await this.userRepository.findByEmail(email);
+      const user = await this.userRepo.findOne({ where: { email: email } });;
       if (!user) throw new Error("Email ou mot de passe incorrect");
 
       const validPassword = await bcrypt.compare(password, user.password);

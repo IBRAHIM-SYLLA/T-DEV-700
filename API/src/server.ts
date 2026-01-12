@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 import path from "path";
-import { AppDataSource, testConnection } from './config/database';
+import { AppDataSource } from './config/database';
 import app from "./index";
 
 dotenv.config();
@@ -24,7 +24,6 @@ if (process.env.NODE_ENV !== "test") {
       console.log("✅ DataSource initialisé");
       // app.listen(process.env.BACKEND_PORT || 5001, async () => {
       //   console.log(`🚀 Server running on port ${process.env.BACKEND_PORT || 5001}, http://localhost:${PORT}`);
-      await testConnection();
       // });
     })
     .catch((err) => {
