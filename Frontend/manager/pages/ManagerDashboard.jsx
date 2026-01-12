@@ -11,6 +11,7 @@ import DonutChart from "../../src/components/DonutChart.jsx";
 import { toUiUser } from "../../services/mappers";
 import { downloadCsvFile, sanitizeFilenamePart } from "../../services/Csv";
 import EmployeeFicheModal from "./EmployeeFicheModal";
+import ReportsApi from "../../services/ReportsApi";
 
 export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }) {
   const [showProfile, setShowProfile] = useState(false);
@@ -33,6 +34,27 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
+
+  const [presencePeriod, setPresencePeriod] = useState("today"); // "today" | "month"
+  const [monthActiveUsersByTeamId, setMonthActiveUsersByTeamId] = useState({});
+  const [monthTeamsLoading, setMonthTeamsLoading] = useState(false);
+
+  const [monthKpisLoading, setMonthKpisLoading] = useState(false);
+  const [monthKpis, setMonthKpis] = useState({
+    totalWorkedTime: 0,
+    averageWorkedTime: 0,
+    lateRate: 0,
+    activeUsers: 0,
+    incompleteClocks: 0
+  });
+
+  const getMonthRange = (monthKey) => {
+    const [y, m] = String(monthKey || "").split("-").map((v) => Number(v));
+    if (!Number.isFinite(y) || !Number.isFinite(m) || m < 1 || m > 12) return null;
+    const from = new Date(y, m - 1, 1, 0, 0, 0, 0);
+    const to = new Date(y, m, 0, 23, 59, 59, 999);
+    return { from, to };
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -204,6 +226,110 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
     };
   }, [employeesForPresence, token, presenceRefreshNonce]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadMonthKpis = async () => {
+      const teamId = Number(selectedTeamId);
+      const range = getMonthRange(selectedMonthKey);
+      if (!Number.isFinite(teamId) || !range) {
+        if (!cancelled) {
+          setMonthKpis({
+            totalWorkedTime: 0,
+            averageWorkedTime: 0,
+            lateRate: 0,
+            activeUsers: 0,
+            incompleteClocks: 0
+          });
+        }
+        return;
+      }
+
+      try {
+        setMonthKpisLoading(true);
+        const [twt, awt, lr, au, ic] = await Promise.all([
+          ReportsApi.getTotalWorkedTime({ teamId, from: range.from, to: range.to }, { token }),
+          ReportsApi.getAverageWorkedTime({ teamId, from: range.from, to: range.to }, { token }),
+          ReportsApi.getLateRate({ teamId, from: range.from, to: range.to }, { token }),
+          ReportsApi.getActiveUsers({ teamId, from: range.from, to: range.to }, { token }),
+          ReportsApi.getIncompleteClocks({ teamId, from: range.from, to: range.to }, { token })
+        ]);
+
+        if (cancelled) return;
+
+        setMonthKpis({
+          totalWorkedTime: Number(twt?.totalWorkedTime) || 0,
+          averageWorkedTime: Number(awt?.averageWorkedTime) || 0,
+          lateRate: Number(lr?.lateRate) || 0,
+          activeUsers: Number(au?.activeUsers) || 0,
+          incompleteClocks: Number(ic?.incompleteClocks) || 0
+        });
+      } catch {
+        if (!cancelled) {
+          setMonthKpis({
+            totalWorkedTime: 0,
+            averageWorkedTime: 0,
+            lateRate: 0,
+            activeUsers: 0,
+            incompleteClocks: 0
+          });
+        }
+      } finally {
+        if (!cancelled) setMonthKpisLoading(false);
+      }
+    };
+
+    loadMonthKpis();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedTeamId, selectedMonthKey, token]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadMonthTeams = async () => {
+      if (presencePeriod !== "month") return;
+
+      const range = getMonthRange(selectedMonthKey);
+      if (!range) {
+        if (!cancelled) setMonthActiveUsersByTeamId({});
+        return;
+      }
+
+      const teams = managedTeams || [];
+      if (!teams.length) {
+        if (!cancelled) setMonthActiveUsersByTeamId({});
+        return;
+      }
+
+      try {
+        setMonthTeamsLoading(true);
+        const results = await Promise.allSettled(
+          teams.map((t) =>
+            ReportsApi.getActiveUsers({ teamId: t.team_id, from: range.from, to: range.to }, { token })
+          )
+        );
+
+        if (cancelled) return;
+
+        const next = {};
+        teams.forEach((t, i) => {
+          const r = results[i];
+          next[t.team_id] = r.status === "fulfilled" ? Number(r.value?.activeUsers) || 0 : 0;
+        });
+        setMonthActiveUsersByTeamId(next);
+      } finally {
+        if (!cancelled) setMonthTeamsLoading(false);
+      }
+    };
+
+    loadMonthTeams();
+    return () => {
+      cancelled = true;
+    };
+  }, [presencePeriod, managedTeams, selectedMonthKey, token]);
+
   const presenceRows = useMemo(() => {
     return (teamEmployees || []).map((u) => ({
       user: u,
@@ -238,40 +364,21 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
     return options;
   }, []);
 
-  const monthStats = useMemo(() => {
-    const employees = teamEmployees || [];
-    if (!employees.length) {
-      return { totalHours: 0, overtimeHours: 0, daysWorked: 0, delays: 0 };
-    }
-
-    return employees.reduce(
-      (acc, user) => {
-        const clocks = clocksByUserId[user.user_id] || [];
-        const monthClocks = clocks
-          .filter((c) => AttendanceService.toIsoDateKey(c.arrival_time)?.startsWith(selectedMonthKey))
-          .filter((c) => c.departure_time);
-
-        monthClocks.forEach((clock) => {
-          const detailed = AttendanceService.getClockDetailedStatus(clock, null);
-          const workedMinutes = detailed.workedHours?.totalMinutes || 0;
-          const workedHours = workedMinutes / 60;
-          acc.totalHours += workedHours;
-          acc.overtimeHours += Math.max(0, workedHours - 7);
-          acc.daysWorked += 1;
-          if (detailed.arrivalStatus?.status === "late") acc.delays += 1;
-        });
-
-        return acc;
-      },
-      { totalHours: 0, overtimeHours: 0, daysWorked: 0, delays: 0 }
-    );
-  }, [clocksByUserId, selectedMonthKey, teamEmployees]);
+  const selectedMonthLabel = useMemo(() => {
+    return monthOptions.find((o) => o.key === selectedMonthKey)?.label || selectedMonthKey;
+  }, [monthOptions, selectedMonthKey]);
 
   const formatDuration = (hours) => {
     if (!hours) return "0h 00m";
     const h = Math.floor(hours);
     const m = Math.floor((hours - h) * 60);
     return `${h}h ${m.toString().padStart(2, "0")}m`;
+  };
+
+  const formatPercent = (value) => {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return "0%";
+    return `${Math.round(n)}%`;
   };
 
   const formatClockTime = (value) => {
@@ -719,20 +826,69 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
         return (
           <div style={styles.dashboard.contentContainer}>
             <h2 style={pageTitleStyle}>📈 Statistiques de l'équipe</h2>
-            {loadingTeam || presenceLoading ? (
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginBottom: "12px", flexWrap: "wrap" }}>
+              <select
+                value={selectedMonthKey}
+                onChange={(e) => setSelectedMonthKey(e.target.value)}
+                style={styles.history.monthSelector}
+                aria-label="Mois sélectionné"
+              >
+                {monthOptions.map((opt) => (
+                  <option key={opt.key} value={opt.key}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {loadingTeam || presenceLoading || monthKpisLoading || monthTeamsLoading ? (
               <p>Chargement...</p>
             ) : (
               <>
                 <div style={styles.profile.infoCard}>
-                  <div style={styles.profile.infoTitle}>Présences (aujourd'hui)</div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+                    <div style={styles.profile.infoTitle}>
+                      {presencePeriod === "today" ? "Présences (aujourd'hui)" : `Présences (${selectedMonthLabel})`}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                      <select
+                        value={presencePeriod}
+                        onChange={(e) => setPresencePeriod(e.target.value)}
+                        style={styles.history.monthSelector}
+                        aria-label="Période des présences"
+                      >
+                        <option value="today">Aujourd'hui</option>
+                        <option value="month">Mois</option>
+                      </select>
+                    </div>
+                  </div>
                   <div style={{ marginTop: "12px" }}>
                     {(() => {
+                      if (presencePeriod === "month") {
+                        const total = (allEmployees || []).length;
+                        const sumActive = Object.values(monthActiveUsersByTeamId || {}).reduce(
+                          (acc, v) => acc + (Number(v) || 0),
+                          0
+                        );
+                        const active = Math.min(total, Math.max(0, sumActive));
+                        const inactive = Math.max(0, total - active);
+                        return (
+                          <DonutChart
+                            segments={[
+                              { label: "Ont pointé", value: active, color: styles.history.statusBadgeComplete.background },
+                              { label: "Sans pointage", value: inactive, color: styles.history.statusBadgeIncomplete.background }
+                            ]}
+                            centerLabel={String(total || 0)}
+                            centerSubLabel="employés"
+                          />
+                        );
+                      }
+
                       const counts = statusCountsFromRows(allPresenceRows);
                       return (
                         <DonutChart
                           segments={[
                             { label: "Présent", value: counts.present, color: styles.history.statusBadgeComplete.background },
-                            { label: "En retard", value: counts.late, color: styles.history.statusBadgeDelay.background },
+                            { label: "En retard", value: counts.late, color: "#facc15" },
                             { label: "Absent", value: counts.absent, color: styles.history.statusBadgeIncomplete.background }
                           ]}
                           centerLabel={String(counts.total || 0)}
@@ -744,10 +900,32 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
                 </div>
 
                 <div style={styles.profile.infoCard}>
-                  <div style={styles.profile.infoTitle}>Présences par équipe (aujourd'hui)</div>
+                  <div style={styles.profile.infoTitle}>
+                    {presencePeriod === "today" ? "Présences par équipe (aujourd'hui)" : `Présences par équipe (${selectedMonthLabel})`}
+                  </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "12px" }}>
                     {(managedTeams || []).length ? (
                       (managedTeams || []).map((team) => {
+                        if (presencePeriod === "month") {
+                          const teamTotal = (allEmployees || []).filter((u) => u.team_id === team.team_id).length;
+                          const active = Math.min(teamTotal, Math.max(0, Number(monthActiveUsersByTeamId[team.team_id]) || 0));
+                          const inactive = Math.max(0, teamTotal - active);
+                          if (!teamTotal) return null;
+                          const counts = { total: teamTotal, present: active, late: 0, absent: inactive };
+
+                          return (
+                            <div key={team.team_id} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", gap: "12px" }}>
+                                <div style={{ fontWeight: 700 }}>{team.name}</div>
+                                <div style={{ fontSize: "12px", opacity: 0.75 }}>
+                                  Total: {counts.total} · Ont pointé: {counts.present} · Sans pointage: {counts.absent}
+                                </div>
+                              </div>
+                              {renderStackedBar(counts)}
+                            </div>
+                          );
+                        }
+
                         const rows = (allEmployees || [])
                           .filter((u) => u.team_id === team.team_id)
                           .map((u) => ({ user: u, status: todayStatusByUserId[u.user_id]?.status || "—" }))
@@ -776,47 +954,85 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
 
                 <div style={styles.profile.infoCard}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
-                    <div style={styles.profile.infoTitle}>Heures et retards (mois)</div>
-                    <select
-                      value={selectedMonthKey}
-                      onChange={(e) => setSelectedMonthKey(e.target.value)}
-                      style={styles.history.monthSelector}
-                    >
-                      {monthOptions.map((opt) => (
-                        <option key={opt.key} value={opt.key}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
+                    <div style={styles.profile.infoTitle}>{`Indicateurs (${selectedMonthLabel})`}</div>
                   </div>
 
                   <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginTop: "12px" }}>
                     <div style={styles.resume.card}>
                       <div style={styles.resume.cardContent}>
                         <div style={styles.resume.cardLabel}>Heures totales</div>
-                        <div style={styles.resume.cardValue}>{formatDuration(monthStats.totalHours)}</div>
+                        <div style={styles.resume.cardValue}>{formatDuration(monthKpis.totalWorkedTime)}</div>
                       </div>
                     </div>
                     <div style={styles.resume.card}>
                       <div style={styles.resume.cardContent}>
-                        <div style={styles.resume.cardLabel}>Heures sup.</div>
-                        <div style={styles.mergeStyles(styles.resume.cardValue, styles.resume.cardValueOvertime)}>
-                          {formatDuration(monthStats.overtimeHours)}
-                        </div>
+                        <div style={styles.resume.cardLabel}>Moyenne / salarié</div>
+                        <div style={styles.resume.cardValue}>{formatDuration(monthKpis.averageWorkedTime)}</div>
                       </div>
                     </div>
                     <div style={styles.resume.card}>
                       <div style={styles.resume.cardContent}>
-                        <div style={styles.resume.cardLabel}>Jours pointés</div>
-                        <div style={styles.resume.cardValue}>{monthStats.daysWorked}</div>
+                        <div style={styles.resume.cardLabel}>Taux de retard</div>
+                        <div style={styles.resume.cardValue}>{formatPercent(monthKpis.lateRate)}</div>
                       </div>
                     </div>
                     <div style={styles.resume.card}>
                       <div style={styles.resume.cardContent}>
-                        <div style={styles.resume.cardLabel}>Retards</div>
-                        <div style={styles.resume.cardValue}>{monthStats.delays}</div>
+                        <div style={styles.resume.cardLabel}>Salariés actifs</div>
+                        <div style={styles.resume.cardValue}>{monthKpis.activeUsers}</div>
                       </div>
                     </div>
+                    <div style={styles.resume.card}>
+                      <div style={styles.resume.cardContent}>
+                        <div style={styles.resume.cardLabel}>Pointages incomplets</div>
+                        <div style={styles.resume.cardValue}>{monthKpis.incompleteClocks}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={styles.profile.infoCard}>
+                  <div style={styles.profile.infoTitle}>Salariés gérés (aujourd'hui)</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "12px" }}>
+                    {(allEmployees || [])
+                      .slice()
+                      .sort((a, b) => {
+                        const an = `${a.last_name || ""} ${a.first_name || ""}`.toLowerCase();
+                        const bn = `${b.last_name || ""} ${b.first_name || ""}`.toLowerCase();
+                        return an.localeCompare(bn);
+                      })
+                      .map((emp) => {
+                        const entry = todayStatusByUserId[emp.user_id] || { status: "—", clock: null, lateMinutes: 0 };
+                        const status = entry.status || "—";
+                        const arrival = entry.clock?.arrival_time ? formatClockTime(entry.clock.arrival_time) : "";
+
+                        return (
+                          <div
+                            key={emp.user_id}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              gap: "12px",
+                              padding: "12px 14px",
+                              borderRadius: "12px",
+                              background: "#f8fafc",
+                              border: "1px solid #e2e8f0"
+                            }}
+                          >
+                            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                              <div style={{ fontWeight: 700 }}>
+                                {emp.first_name} {emp.last_name}
+                              </div>
+                              <div style={{ fontSize: "12px", opacity: 0.75 }}>
+                                {teamsById.get(emp.team_id)?.name || "—"}
+                                {arrival ? ` · Arrivée: ${arrival}` : ""}
+                              </div>
+                            </div>
+                            <span style={styles.mergeStyles(styles.history.statusBadge, getBadgeStyle(status))}>{status}</span>
+                          </div>
+                        );
+                      })}
                   </div>
                 </div>
               </>
