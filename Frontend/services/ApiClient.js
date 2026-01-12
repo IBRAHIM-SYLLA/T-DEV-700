@@ -28,9 +28,11 @@ async function parseJsonSafely(response) {
     return text;
   }
 }
-
 export async function apiFetch(path, { method = "GET", body, token, headers } = {}) {
+  const BASE_URL = import.meta.env.VITE_API_URL ?? "";
+
   const finalHeaders = {
+    Accept: "application/json",
     ...(body ? { "Content-Type": "application/json" } : {}),
     ...(headers || {})
   };
@@ -39,13 +41,12 @@ export async function apiFetch(path, { method = "GET", body, token, headers } = 
     finalHeaders.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(path, {
+  const response = await fetch(`${BASE_URL}${path}`, {
     method,
     headers: finalHeaders,
-    body: body ? JSON.stringify(body) : undefined
+    body: body ? JSON.stringify(body) : undefined,
+    credentials: "include"
   });
-
-  console.log(response);
 
   const data = await parseJsonSafely(response);
 
