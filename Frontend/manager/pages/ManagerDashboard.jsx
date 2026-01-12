@@ -6,6 +6,7 @@ import TeamsApi from "../../services/TeamsApi";
 import ClocksApi from "../../services/ClocksApi";
 import AttendanceService from "../../services/AttendanceService";
 import Pointage from "../../src/pages/employee/Pointage";
+import Historique from "../../src/pages/employee/Historique";
 import DonutChart from "../../src/components/DonutChart.jsx";
 import { toUiUser } from "../../services/mappers";
 import { downloadCsvFile, sanitizeFilenamePart } from "../../services/Csv";
@@ -142,6 +143,8 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
       try {
         setPresenceLoading(true);
 
+        const currentUserId = Number(currentUser?.user_id ?? currentUser?.userId);
+
         if (!employeesForPresence.length) {
           if (!cancelled) setTodayStatusByUserId({});
           if (!cancelled) setClocksByUserId({});
@@ -160,8 +163,19 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
             nextMap[u.user_id] = { status: "—", clock: null, lateMinutes: 0 };
             return;
           }
-          nextClocks[u.user_id] = result.value;
-          nextMap[u.user_id] = ClocksApi.getTodayStatusFromClocks(result.value, u.user_id);
+
+          const clocks = Array.isArray(result.value) ? result.value : [];
+          const hasUserIdField = clocks.some(
+            (c) => c && (typeof c.user_id !== "undefined" || (c.user && typeof c.user.user_id !== "undefined"))
+          );
+
+          // If the backend response doesn't carry any user identifier, we cannot reliably
+          // attribute clocks to the requested employee. In that case, only trust the payload
+          // for the currently logged-in user; keep others as Absent until backend supports scoping.
+          const safeClocks = !hasUserIdField && Number(u.user_id) !== currentUserId ? [] : clocks;
+
+          nextClocks[u.user_id] = safeClocks;
+          nextMap[u.user_id] = ClocksApi.getTodayStatusFromClocks(safeClocks, u.user_id);
         });
 
         if (!cancelled) {
@@ -486,6 +500,17 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
     }
 
     switch (activeTab) {
+      case "Historique":
+        return (
+          <div style={styles.dashboard.contentContainer}>
+            <h2 style={pageTitleStyle}>📅 Historique</h2>
+            <Historique
+              userId={currentUser?.userId ?? currentUser?.user_id}
+              token={token}
+            />
+          </div>
+        );
+
       case "Tableau de bord":
         return (
           <div style={styles.dashboard.contentContainer}>
@@ -1006,7 +1031,7 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
       {/* Navigation Tabs - Hide when showing profile */}
       {!showProfile && (
         <nav style={styles.dashboard.nav}>
-          {["Pointage", "Tableau de bord", "Mon équipe", "Statistiques", "Émargements", "Rapports"].map((tab) => (
+          {["Pointage", "Historique", "Tableau de bord", "Mon équipe", "Statistiques", "Émargements", "Rapports"].map((tab) => (
             <button
               key={tab}
               style={activeTab === tab ? 
@@ -1020,6 +1045,7 @@ export default function ManagerDashboard({ user, token, onLogout, onUpdateUser }
               {tab === "Statistiques" && "📈"} 
               {tab === "Émargements" && "✅"} 
               {tab === "Pointage" && "⏱️"}
+              {tab === "Historique" && "📅"}
               {tab === "Rapports" && "📄"} 
               {" "}{tab}
             </button>
