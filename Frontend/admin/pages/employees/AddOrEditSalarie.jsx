@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import styles from "../../../src/style/style.ts";
-import { buildBaseEmail, ensureUniqueEmail } from "../../utils/email";
 
 export default function AddOrEditSalarie({
   mode,
@@ -16,30 +15,40 @@ export default function AddOrEditSalarie({
   const [teamId, setTeamId] = useState(initialUser?.team_id ?? "");
   const [phone, setPhone] = useState(initialUser?.phone_number || "");
   const [email, setEmail] = useState(initialUser?.email || "");
+  const [error, setError] = useState("");
 
   const existingEmails = useMemo(
     () => (existingUsers || []).map((u) => u.email).filter(Boolean),
     [existingUsers]
   );
 
-  useEffect(() => {
-    if (mode === "edit") return;
-    const base = buildBaseEmail({ firstName, lastName, domain: "timemanager.com" });
-    const unique = ensureUniqueEmail(base, existingEmails);
-    setEmail(unique);
-  }, [existingEmails, firstName, lastName, mode]);
-
   const title = mode === "edit" ? "Modifier salarié" : "Ajouter salarié";
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setError("");
+
     if (!firstName.trim() || !lastName.trim()) return;
-    if (!email.trim()) return;
+
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    if (!normalizedEmail) {
+      setError("Email requis.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setError("Email invalide.");
+      return;
+    }
+    const isDuplicate = (existingEmails || []).some((e2) => String(e2 || "").trim().toLowerCase() === normalizedEmail);
+    if (mode !== "edit" && isDuplicate) {
+      setError("Cet email existe déjà.");
+      return;
+    }
 
     onSubmit({
       first_name: firstName.trim(),
       last_name: lastName.trim(),
-      email: email.trim().toLowerCase(),
+      email: normalizedEmail,
       phone_number: phone.trim() || null,
       role,
       team_id: teamId === "" ? null : Number(teamId)
@@ -52,9 +61,6 @@ export default function AddOrEditSalarie({
         <div style={styles.profile.avatar}>➕</div>
         <div style={styles.profile.userInfo}>
           <h3 style={styles.profile.userName}>{title}</h3>
-          <div style={{ fontSize: "13px", color: "#64748b" }}>
-            Email auto: <strong>nom.prenom@timemanager.com</strong>
-          </div>
         </div>
       </div>
 
@@ -100,7 +106,6 @@ export default function AddOrEditSalarie({
               style={styles.profile.input}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              disabled={mode !== "edit"}
             />
           </div>
 
@@ -109,6 +114,8 @@ export default function AddOrEditSalarie({
             <input style={styles.profile.input} value={phone} onChange={(e) => setPhone(e.target.value)} />
           </div>
         </div>
+
+        {!!error && <div style={styles.login.errorMessage}>{error}</div>}
 
         <div style={styles.profile.actions}>
           <button type="button" style={styles.profile.cancelBtn} onClick={onCancel}>

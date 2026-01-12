@@ -10,7 +10,7 @@ function getBaseUrl() {
   const fromEnv = !fromEnvRaw || looksUnexpanded || !looksHttp ? "" : fromEnvRaw;
 
   const baseUrl = fromEnv || DEFAULT_BASE_URL;
-  return baseUrl.replace(/\/$/, "");
+  return baseUrl ? baseUrl.replace(/\/$/, "") : "";
 }
 
 function buildUrl(path) {
@@ -58,6 +58,7 @@ export async function apiFetch(path, { method = "GET", body, token, headers } = 
     const err = new Error(message);
     err.status = response.status;
     err.data = data;
+    if (silent) err.silent = true;
     throw err;
   }
 

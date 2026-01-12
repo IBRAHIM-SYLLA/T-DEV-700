@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import styles from "../../style/style.ts";
 import UsersApi from "../../../services/UsersApi";
+import TeamsApi from "../../../services/TeamsApi";
+import { getCachedTeamNameForUser, getCachedTeamNameForTeam } from "../../../services/teamCache";
 
 export default function Profil({ user, token, onUpdateUser, onBack }) {
   const [formData, setFormData] = useState({
@@ -9,22 +11,71 @@ export default function Profil({ user, token, onUpdateUser, onBack }) {
     email: '',
     phoneNumber: ''
   });
+  const [teamName, setTeamName] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [errors, setErrors] = useState({});
   const [saveMessage, setSaveMessage] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const roleLabel = user?.role === "manager" ? "Manager" : "Employé";
+
   // Initialize form data with user info
   useEffect(() => {
     if (user) {
       setFormData({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
+        firstName: user.firstName || user.first_name || '',
+        lastName: user.lastName || user.last_name || '',
         email: user.email || user.username || '',
-        phoneNumber: user.phoneNumber || ''
+        phoneNumber: user.phoneNumber || user.phone_number || ''
       });
     }
   }, [user]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadTeamName = async () => {
+      const fromRelation = user?._raw?.team?.name || user?.team?.name || "";
+      if (fromRelation) {
+        if (!cancelled) setTeamName(fromRelation);
+        return;
+      }
+
+      const userId = user?.userId ?? user?.user_id;
+      const fromUserCache = getCachedTeamNameForUser(userId);
+      if (fromUserCache) {
+        if (!cancelled) setTeamName(fromUserCache);
+        return;
+      }
+
+      const teamId = user?.teamId ?? user?.team_id;
+      if (!teamId || !token) {
+        if (!cancelled) setTeamName("");
+        return;
+      }
+
+      const fromTeamCache = getCachedTeamNameForTeam(teamId);
+      if (fromTeamCache) {
+        if (!cancelled) setTeamName(fromTeamCache);
+        return;
+      }
+
+      // Backend restricts /api/teams/:id to RH/Admin only.
+      const canReadTeams = user?.role === "rh" || user?.role === "super_admin";
+      if (!canReadTeams) {
+        if (!cancelled) setTeamName(`Équipe #${teamId}`);
+        return;
+      }
+
+      const t = await TeamsApi.getByIdSilent(teamId, { token });
+      if (!cancelled) setTeamName(t?.name || `Équipe #${teamId}`);
+    };
+
+    loadTeamName();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, user]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -86,6 +137,16 @@ export default function Profil({ user, token, onUpdateUser, onBack }) {
         { token }
       );
 
+      // Keep the UI in sync with whatever the backend returns
+      if (updated) {
+        setFormData({
+          firstName: updated.firstName || updated.first_name || formData.firstName,
+          lastName: updated.lastName || updated.last_name || formData.lastName,
+          email: updated.email || updated.username || formData.email,
+          phoneNumber: updated.phoneNumber || updated.phone_number || formData.phoneNumber
+        });
+      }
+
       if (onUpdateUser) onUpdateUser(updated);
 
       setIsEditing(false);
@@ -103,10 +164,10 @@ export default function Profil({ user, token, onUpdateUser, onBack }) {
     // Reset form to original values
     if (user) {
       setFormData({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
+        firstName: user.firstName || user.first_name || '',
+        lastName: user.lastName || user.last_name || '',
         email: user.email || user.username || '',
-        phoneNumber: user.phoneNumber || ''
+        phoneNumber: user.phoneNumber || user.phone_number || ''
       });
     }
     setIsEditing(false);
@@ -147,7 +208,7 @@ export default function Profil({ user, token, onUpdateUser, onBack }) {
               <h3 style={styles.profile.userName}>
                 {formData.firstName} {formData.lastName}
               </h3>
-              <span style={styles.profile.userRole}>Employé</span>
+              <span style={styles.profile.userRole}>{roleLabel}</span>
             </div>
             {!isEditing && (
               <button 
@@ -269,13 +330,12 @@ export default function Profil({ user, token, onUpdateUser, onBack }) {
           <h4 style={styles.profile.infoTitle}>Informations du compte</h4>
           <div style={styles.profile.infoRow}>
             <span style={styles.profile.infoLabel}>Rôle :</span>
-            <span style={styles.profile.infoValue}>Employé</span>
+            <span style={styles.profile.infoValue}>{roleLabel}</span>
           </div>
           <div style={styles.profile.infoRow}>
             <span style={styles.profile.infoLabel}>Équipe :</span>
             <span style={styles.profile.infoValue}>
-              {user?.teamId === 1 ? 'Development Team' : 
-               user?.teamId === 2 ? 'Marketing Team' : 'Aucune équipe'}
+              {teamName || 'Aucune équipe'}
             </span>
           </div>
           <div style={styles.profile.infoRow}>

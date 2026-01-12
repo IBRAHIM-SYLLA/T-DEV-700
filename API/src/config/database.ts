@@ -1,4 +1,3 @@
-import mariadb from "mariadb";
 import dotenv from 'dotenv';
 import path from "path";
 import { DataSource } from "typeorm";
