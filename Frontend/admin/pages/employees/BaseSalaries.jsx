@@ -17,7 +17,6 @@ export default function BaseSalaries({ token }) {
   const [teams, setTeams] = useState([]);
   const [presenceLoading, setPresenceLoading] = useState(true);
   const [todayStatusByUserId, setTodayStatusByUserId] = useState({});
-  const [discoveredTeamsCache, setDiscoveredTeamsCache] = useState([]);
 
   const [showCreateTeam, setShowCreateTeam] = useState(false);
   const [createTeamName, setCreateTeamName] = useState("");
@@ -77,53 +76,8 @@ export default function BaseSalaries({ token }) {
           .map((r) => r.value);
       }
 
-      // RH token can fetch a team by ID (/api/teams/:id) but the listing (/api/teams)
-      // is currently restricted on the backend. To still populate the RH dropdown,
-      // we probe a reasonable ID range ONCE and cache the result (to avoid console/network spam).
-      const discoverAllTeamsById = async (maxId = 200, batchSize = 12, stopAfterConsecutiveMisses = 25) => {
-        const found = [];
-        const ids = Array.from({ length: maxId }, (_, i) => i + 1);
-        let consecutiveMisses = 0;
-
-        for (let i = 0; i < ids.length; i += batchSize) {
-          const batch = ids.slice(i, i + batchSize);
-          // eslint-disable-next-line no-await-in-loop
-          const results = await Promise.all(batch.map((id) => TeamsApi.getByIdSilent(id, { token })));
-
-          results.forEach((t) => {
-            if (t?.team_id) {
-              found.push(t);
-              consecutiveMisses = 0;
-            } else {
-              consecutiveMisses += 1;
-            }
-          });
-
-          // If we hit a long streak of missing IDs, assume we've passed the max existing team id.
-          if (consecutiveMisses >= stopAfterConsecutiveMisses) break;
-        }
-
-        return found;
-      };
-
-      // Only probe if listing looks incomplete.
-      const knownCount = new Set([...(allTeams || []), ...(derivedTeams || [])].map((t) => t?.team_id).filter(Boolean)).size;
-      let probedTeams = [];
-      if (knownCount < 3) {
-        if ((discoveredTeamsCache || []).length) {
-          probedTeams = discoveredTeamsCache;
-        } else {
-          try {
-            probedTeams = await discoverAllTeamsById(200, 12, 25);
-            setDiscoveredTeamsCache(probedTeams);
-          } catch {
-            probedTeams = [];
-          }
-        }
-      }
-
       const byId = new Map();
-      [...(allTeams || []), ...(derivedTeams || []), ...(probedTeams || []), ...(discoveredTeamsCache || [])].forEach((t) => {
+      [...(allTeams || []), ...(derivedTeams || [])].forEach((t) => {
         if (t?.team_id) byId.set(t.team_id, t);
       });
 
@@ -315,7 +269,6 @@ export default function BaseSalaries({ token }) {
 
   const rows = useMemo(() => {
     return (users || [])
-      .filter((u) => u.role !== "super_admin")
       .map((u) => {
         const team = u.team_id ? teamById.get(String(u.team_id)) : null;
         const manager = team?.manager_id ? userById.get(String(team.manager_id)) : null;
@@ -393,7 +346,7 @@ export default function BaseSalaries({ token }) {
     <div style={styles.dashboard.main}>
       <div style={styles.dashboard.contentContainer}>
         <div style={{ padding: "24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={styles.profile.title}>Base des salariés</h2>
+          <h2 style={styles.profile.title}>Base des salariés ({rows.length})</h2>
           <div style={{ display: "flex", gap: "10px" }}>
             <button style={styles.profile.saveBtn} onClick={startAdd}>
               ➕ Ajouter salarié
