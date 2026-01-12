@@ -1,5 +1,5 @@
 import express from 'express';
-import cors from 'cors'; 
+import cors from 'cors';
 import userRouter from './routes/user-router';
 import AuthRouter from './routes/auth-router';
 import teamRouter from './routes/team-router';
@@ -7,12 +7,15 @@ import clockRouter from './routes/clock-router';
 import swaggerUi from "swagger-ui-express";
 import swaggerDocs from "./swagger";
 import reportRouter from './routes/report-router';
+import cookieParser from "cookie-parser";
 
 const app = express();
 app.use(cors({
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true
 }));
+
+app.use(cookieParser());
 app.use(express.json());
 
 app.get('/', (_, res) => {

@@ -28,38 +28,24 @@ async function parseJsonSafely(response) {
     return text;
   }
 }
-export async function apiFetch(path, { method = "GET", body, token, headers } = {}) {
+export async function apiFetch(path, { method = "GET", body, headers } = {}) {
   const BASE_URL = import.meta.env.VITE_API_URL ?? "";
-
-  const finalHeaders = {
-    Accept: "application/json",
-    ...(body ? { "Content-Type": "application/json" } : {}),
-    ...(headers || {})
-  };
-
-  if (token) {
-    finalHeaders.Authorization = `Bearer ${token}`;
-  }
 
   const response = await fetch(`${BASE_URL}${path}`, {
     method,
-    headers: finalHeaders,
+    headers: {
+      Accept: "application/json",
+      ...(body ? { "Content-Type": "application/json" } : {}),
+      ...(headers || {})
+    },
     body: body ? JSON.stringify(body) : undefined,
     credentials: "include"
   });
 
-  const data = await parseJsonSafely(response);
+  const data = await response.json();
 
   if (!response.ok) {
-    const message =
-      (data && typeof data === "object" && (data.message || data.error)) ||
-      (typeof data === "string" ? data : null) ||
-      `HTTP ${response.status}`;
-    const err = new Error(message);
-    err.status = response.status;
-    err.data = data;
-    if (silent) err.silent = true;
-    throw err;
+    throw new Error(data?.message || `HTTP ${response.status}`);
   }
 
   return data;

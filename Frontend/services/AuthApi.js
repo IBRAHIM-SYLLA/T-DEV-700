@@ -9,10 +9,14 @@ const AuthApi = {
     });
 
     return {
-      token: result?.token || null,
-      user: toUiUser(result?.user)
+      user: toUiUser(result.user)
     };
+  },
+
+  async logout() {
+    await apiFetch("/api/auth/logout", { method: "POST" });
   }
 };
 
 export default AuthApi;
+

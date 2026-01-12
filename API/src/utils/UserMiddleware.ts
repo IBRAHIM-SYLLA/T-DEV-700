@@ -11,14 +11,11 @@ export const verifyToken = (
   res: Response,
   next: NextFunction
 ) => {
-  const authHeader = req.headers.authorization;
+  const token = req.cookies.auth_token;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Token manquant" });
+  if (!token) {
+    return res.status(401).json({ message: "Non authentifié" });
   }
-
-  const token = authHeader.split(" ")[1];
-  console.log(token)
 
   jwt.verify(token, process.env.JWT_SECRET!, (err, decoded) => {
     if (err) {
@@ -29,6 +26,7 @@ export const verifyToken = (
     next();
   });
 };
+
 
 export const verifyManager = (
   req: Request,

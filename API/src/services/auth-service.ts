@@ -53,7 +53,6 @@ export class AuthService {
       const validPassword = await bcrypt.compare(password, user.password);
       if (!validPassword) throw new Error("Email ou mot de passe incorrect");
 
-      // Génération du token JWT
       const token = jwt.sign(
         {
           user_id: user.user_id,
