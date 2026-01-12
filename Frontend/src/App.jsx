@@ -3,6 +3,7 @@ import Login from "./pages/Login";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
 import ManagerDashboard from "../manager/pages/ManagerDashboard";
 import AdminDashboard from "../admin/pages/AdminDashboard";
+import { apiFetch } from "../services/ApiClient";
 
 function App() {
   const [auth, setAuth] = useState({ user: null });
