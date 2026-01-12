@@ -47,7 +47,7 @@ export default function TableauDeBordRH({ token }) {
     };
   }, [token]);
 
-  const { employees, managerById, teamById } = useMemo(() => {
+  const { people, managerById, teamById } = useMemo(() => {
     const teamMap = new Map();
     (teams || []).forEach((t) => {
       const id = t?.team_id ?? t?.id;
@@ -69,26 +69,13 @@ export default function TableauDeBordRH({ token }) {
       (t?.members || []).forEach(addUser);
     });
 
-    // Prefer team members for employees (works even if /api/users is "light")
-    const employeeById = new Map();
-    (teams || []).forEach((t) => {
-      const managerId = t?.manager_id ?? t?.manager?.user_id ?? null;
-      (t?.members || []).forEach((m) => {
-        const u = addUser(m);
-        if (!u || u.user_id == null) return;
-        if (managerId != null && u.user_id === managerId) return;
-        // If role is present, keep only employees; if missing, assume it's an employee.
-        if (u.role && u.role !== "employee") return;
-        employeeById.set(u.user_id, u);
-      });
-    });
-
-    const employees = employeeById.size
-      ? Array.from(employeeById.values())
-      : Array.from(userMap.values()).filter((u) => u.role === "employee");
+    // Source of truth for RH totals: the full /api/users list.
+    const people = (users || [])
+      .map((u) => addUser(u))
+      .filter((u) => u?.user_id != null);
 
     return {
-      employees,
+      people,
       managerById: userMap,
       teamById: teamMap
     };
@@ -102,18 +89,18 @@ export default function TableauDeBordRH({ token }) {
       try {
         setPresenceLoading(true);
 
-        if (!employees.length) {
+        if (!people.length) {
           if (!cancelled) setTodayStatusByUserId({});
           return;
         }
 
         const results = await Promise.allSettled(
-          employees.map((user) => ClocksApi.listForUser(user.user_id, { token }))
+          people.map((user) => ClocksApi.listForUser(user.user_id, { token }))
         );
 
         const nextMap = {};
         const nextClocks = {};
-        employees.forEach((user, index) => {
+        people.forEach((user, index) => {
           const result = results[index];
           if (result.status !== "fulfilled") {
             nextMap[user.user_id] = { status: "—", clock: null, lateMinutes: 0 };
@@ -147,7 +134,7 @@ export default function TableauDeBordRH({ token }) {
       window.removeEventListener("focus", onVisibilityOrFocus);
       document.removeEventListener("visibilitychange", onVisibilityOrFocus);
     };
-  }, [employees, token]);
+  }, [people, token]);
 
   const monthOptions = useMemo(() => {
     const now = new Date();
@@ -221,7 +208,7 @@ export default function TableauDeBordRH({ token }) {
   };
 
   const monthStats = useMemo(() => {
-    const emps = employees || [];
+    const emps = people || [];
     if (!emps.length) return { totalHours: 0, overtimeHours: 0, daysWorked: 0, delays: 0 };
 
     return emps.reduce(
@@ -245,10 +232,10 @@ export default function TableauDeBordRH({ token }) {
       },
       { totalHours: 0, overtimeHours: 0, daysWorked: 0, delays: 0 }
     );
-  }, [clocksByUserId, employees, selectedMonthKey]);
+  }, [clocksByUserId, people, selectedMonthKey]);
 
   const teamMonthStats = useMemo(() => {
-    const emps = employees || [];
+    const emps = people || [];
     const statsByTeam = new Map();
 
     emps.forEach((user) => {
@@ -275,10 +262,10 @@ export default function TableauDeBordRH({ token }) {
     });
 
     return Array.from(statsByTeam.values()).sort((a, b) => b.totalHours - a.totalHours);
-  }, [clocksByUserId, employees, selectedMonthKey, teamById]);
+  }, [clocksByUserId, people, selectedMonthKey, teamById]);
 
   const presenceRows = useMemo(() => {
-    return employees.map((user) => {
+    return (people || []).map((user) => {
       const status = todayStatusByUserId[user.user_id]?.status || "—";
       const team = user.team_id ? teamById.get(user.team_id) : null;
       const manager = team?.manager_id ? managerById.get(team.manager_id) : null;
@@ -290,7 +277,7 @@ export default function TableauDeBordRH({ token }) {
         managerName: manager ? `${manager.first_name} ${manager.last_name}` : "—"
       };
     });
-  }, [employees, managerById, teamById, todayStatusByUserId]);
+  }, [managerById, people, teamById, todayStatusByUserId]);
 
   const kpis = useMemo(() => {
     const total = presenceRows.length;
