@@ -35,6 +35,41 @@ const ReportsApi = {
     });
 
     return apiFetch(`/api/reports${qs}`, { token });
+  },
+
+  async getTotalWorkedTime({ userId, teamId, from, to } = {}, { token } = {}) {
+    const fromValue = from instanceof Date ? from.toISOString() : from;
+    const toValue = to instanceof Date ? to.toISOString() : to;
+    const qs = toQueryString({ userId, teamId, from: fromValue, to: toValue });
+    return apiFetch(`/api/reports/total-worked-time${qs}`, { token });
+  },
+
+  async getAverageWorkedTime({ userId, teamId, from, to } = {}, { token } = {}) {
+    const fromValue = from instanceof Date ? from.toISOString() : from;
+    const toValue = to instanceof Date ? to.toISOString() : to;
+    const qs = toQueryString({ userId, teamId, from: fromValue, to: toValue });
+    return apiFetch(`/api/reports/average-worked-time${qs}`, { token });
+  },
+
+  async getLateRate({ userId, teamId, from, to } = {}, { token } = {}) {
+    const fromValue = from instanceof Date ? from.toISOString() : from;
+    const toValue = to instanceof Date ? to.toISOString() : to;
+    const qs = toQueryString({ userId, teamId, from: fromValue, to: toValue });
+    return apiFetch(`/api/reports/late-rate${qs}`, { token });
+  },
+
+  async getActiveUsers({ userId, teamId, from, to } = {}, { token } = {}) {
+    const fromValue = from instanceof Date ? from.toISOString() : from;
+    const toValue = to instanceof Date ? to.toISOString() : to;
+    const qs = toQueryString({ userId, teamId, from: fromValue, to: toValue });
+    return apiFetch(`/api/reports/active-users${qs}`, { token });
+  },
+
+  async getIncompleteClocks({ userId, teamId, from, to } = {}, { token } = {}) {
+    const fromValue = from instanceof Date ? from.toISOString() : from;
+    const toValue = to instanceof Date ? to.toISOString() : to;
+    const qs = toQueryString({ userId, teamId, from: fromValue, to: toValue });
+    return apiFetch(`/api/reports/incomplete-clocks${qs}`, { token });
   }
 };
 
