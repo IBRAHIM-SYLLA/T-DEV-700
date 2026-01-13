@@ -8,6 +8,7 @@ import AuthApi from "../services/AuthApi";
 
 function App() {
   const [auth, setAuth] = useState({ user: null });
+  const [loading, setLoading] = useState(true); // 🔑
 
   const handleLogin = ({ user }) => {
     setAuth({ user });
@@ -20,10 +21,20 @@ function App() {
 
   useEffect(() => {
     apiFetch("/api/auth/me")
-      .then((res) => setAuth({ user: res.user }))
-      .catch(() => setAuth({ user: null }));
+      .then((res) => {
+        setAuth({ user: res.user });
+      })
+      .catch(() => {
+        setAuth({ user: null });
+      })
+      .finally(() => {
+        setLoading(false); // 🔑
+      });
   }, []);
 
+  if (loading) {
+    return <div>Chargement...</div>;
+  }
 
   const renderDashboard = () => {
     if (!auth.user) return null;
@@ -46,5 +57,6 @@ function App() {
     </div>
   );
 }
+
 
 export default App;
