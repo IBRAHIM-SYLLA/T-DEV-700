@@ -33,7 +33,7 @@ function App() {
   }, []);
 
   if (loading) {
-    return <div>Chargement...</div>;
+    return <div>Chargement...</div>; // ou spinner
   }
 
   const renderDashboard = () => {
